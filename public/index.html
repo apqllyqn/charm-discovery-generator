@@ -1,0 +1,219 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<title>Charm · discovery asset generator</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --purple:#6f49b2; --deep:#380c83; --tint:#f3edfb; --accent:#c4a9ef;
+  --ink:#17181b; --ink2:#2a2a31; --muted:#6b6772; --muted2:#9a96a5;
+  --line:#e8e6ed; --line2:#d5d1de;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:Poppins,'Inter Tight',Helvetica,Arial,sans-serif;color:var(--ink);background:#fff}
+header{
+  background:linear-gradient(135deg,var(--deep) 0%,#160c2b 65%,#000 100%);
+  color:#fff;padding:34px 40px;display:flex;align-items:center;justify-content:space-between;
+}
+header img{height:26px;filter:invert(1)}
+header .who{font-size:13px;color:var(--accent);letter-spacing:.14em;text-transform:uppercase;font-weight:600}
+header form{display:inline}
+header button{background:none;border:1px solid rgba(255,255,255,.2);color:#cfc7de;
+  border-radius:99px;padding:6px 14px;font:inherit;font-size:12px;cursor:pointer}
+main{max-width:1000px;margin:0 auto;padding:48px 40px 80px}
+h1{font-size:34px;font-weight:700;letter-spacing:-.02em;margin-bottom:10px}
+.sub{color:var(--muted);font-size:16px;line-height:1.5;margin-bottom:34px;max-width:640px}
+.gen{display:flex;gap:12px;margin-bottom:14px}
+.gen input{
+  flex:1;padding:16px 18px;font:inherit;font-size:17px;border:1px solid var(--line2);
+  border-radius:11px;background:#fff;
+}
+.gen input:focus{outline:none;border-color:var(--purple);box-shadow:0 0 0 3px rgba(111,73,178,.15)}
+.gen button{
+  padding:16px 30px;border:0;border-radius:11px;background:var(--purple);color:#fff;
+  font:inherit;font-weight:600;font-size:16px;cursor:pointer;white-space:nowrap;
+}
+.gen button:disabled{background:var(--muted2);cursor:default}
+.hint{font-size:13px;color:var(--muted2);margin-bottom:34px}
+#log{
+  display:none;background:var(--tint);border:1px solid #e0d5f4;border-radius:13px;
+  padding:24px 26px;margin-bottom:34px;
+}
+#log.on{display:block}
+#log .line{font-size:15px;color:var(--deep);padding:5px 0;display:flex;gap:10px;align-items:flex-start}
+#log .line::before{content:"\2726";color:var(--purple)}
+#log .line.err{color:#9a1f3d}
+#log .line.err::before{content:"\26A0"}
+#log .done{margin-top:16px;padding-top:16px;border-top:1px solid #e0d5f4}
+#log .done a{
+  display:inline-block;background:var(--purple);color:#fff;text-decoration:none;
+  padding:12px 22px;border-radius:9px;font-weight:600;font-size:15px;margin-right:10px;
+}
+#log .done .copy{
+  display:inline-block;border:1px solid var(--line2);background:#fff;color:var(--ink2);
+  padding:12px 22px;border-radius:9px;font-weight:600;font-size:15px;cursor:pointer;font-family:inherit;
+}
+.spin{display:inline-block;width:13px;height:13px;border:2px solid var(--accent);
+  border-top-color:var(--purple);border-radius:50%;animation:sp .7s linear infinite;margin-left:6px}
+@keyframes sp{to{transform:rotate(360deg)}}
+h2{font-size:13px;letter-spacing:.16em;text-transform:uppercase;color:var(--purple);
+  font-weight:600;margin-bottom:16px;padding-bottom:12px;border-bottom:1px solid var(--line)}
+table{width:100%;border-collapse:collapse}
+td{padding:15px 8px;border-bottom:1px solid var(--line);font-size:15px;vertical-align:middle}
+td.co{font-weight:600}
+td.dom{color:var(--muted);font-size:14px}
+td.when{color:var(--muted2);font-size:13px;white-space:nowrap}
+td.act{text-align:right;white-space:nowrap}
+td.act a{color:var(--purple);text-decoration:none;font-weight:600;font-size:14px;margin-left:14px}
+td.act button{background:none;border:0;color:var(--muted2);font:inherit;font-size:14px;cursor:pointer;margin-left:14px}
+td.act button:hover{color:#9a1f3d}
+.empty{color:var(--muted2);font-size:15px;padding:26px 0}
+</style>
+</head>
+<body>
+<header>
+  <img src="https://go.hirecharm.com/assets/charm-logo.svg" alt="Charm">
+  <div style="display:flex;gap:18px;align-items:center">
+    <span class="who">Discovery asset generator</span>
+    <form method="post" action="/logout"><button type="submit">Sign out</button></form>
+  </div>
+</header>
+
+<main>
+  <h1>Cast a reading.</h1>
+  <p class="sub">
+    Put in a prospect's domain. Charm researches them, reads their market, and builds a
+    personalized top-of-funnel deck you can present from and send afterwards.
+    Takes about two minutes.
+  </p>
+
+  <form class="gen" id="gen">
+    <input id="domain" type="text" placeholder="acme.com" autocomplete="off" autofocus required>
+    <button type="submit" id="go">Build the deck</button>
+  </form>
+  <p class="hint">Domain only. No https, no path. The link it gives you is unlisted and safe to send.</p>
+
+  <div id="log"></div>
+
+  <h2>Readings cast</h2>
+  <div id="decks"><p class="empty">Nothing yet.</p></div>
+</main>
+
+<script>
+var log = document.getElementById('log');
+var go = document.getElementById('go');
+var source = null;
+
+function line(text, cls){
+  var el = document.createElement('div');
+  el.className = 'line' + (cls ? ' ' + cls : '');
+  el.textContent = text;
+  log.appendChild(el);
+  return el;
+}
+
+document.getElementById('gen').addEventListener('submit', function(e){
+  e.preventDefault();
+  var domain = document.getElementById('domain').value.trim();
+  if (!domain) return;
+
+  log.innerHTML = '';
+  log.classList.add('on');
+  go.disabled = true;
+  go.textContent = 'Working';
+
+  var pending = line('Starting.');
+  var spin = document.createElement('span');
+  spin.className = 'spin';
+  pending.appendChild(spin);
+
+  if (source) source.close();
+  source = new EventSource('/api/generate?domain=' + encodeURIComponent(domain));
+
+  source.addEventListener('progress', function(ev){
+    if (spin.parentNode) spin.parentNode.removeChild(spin);
+    var el = line(JSON.parse(ev.data).message);
+    el.appendChild(spin);
+  });
+
+  source.addEventListener('done', function(ev){
+    var d = JSON.parse(ev.data);
+    if (spin.parentNode) spin.parentNode.removeChild(spin);
+    line('Deck ready for ' + d.company + '.');
+    var box = document.createElement('div');
+    box.className = 'done';
+    var url = location.origin + d.url;
+    box.innerHTML = '<a href="' + d.url + '" target="_blank">Open the deck</a>' +
+      '<button class="copy" type="button">Copy link</button>';
+    box.querySelector('.copy').onclick = function(){
+      navigator.clipboard.writeText(url);
+      this.textContent = 'Copied';
+    };
+    log.appendChild(box);
+    reset();
+    loadDecks();
+  });
+
+  source.addEventListener('error', function(ev){
+    if (spin.parentNode) spin.parentNode.removeChild(spin);
+    var msg = 'Connection dropped. Try again.';
+    try { msg = JSON.parse(ev.data).message; } catch(e){}
+    line(msg, 'err');
+    reset();
+  });
+
+  source.onerror = function(){ reset(); };
+});
+
+function reset(){
+  if (source) { source.close(); source = null; }
+  go.disabled = false;
+  go.textContent = 'Build the deck';
+}
+
+function loadDecks(){
+  fetch('/api/decks').then(function(r){ return r.json(); }).then(function(d){
+    var wrap = document.getElementById('decks');
+    if (!d.decks || !d.decks.length) {
+      wrap.innerHTML = '<p class="empty">Nothing yet.</p>';
+      return;
+    }
+    var rows = d.decks.map(function(x){
+      var when = new Date(x.created_at).toLocaleDateString('en-US',
+        { month:'short', day:'numeric', year:'numeric' });
+      return '<tr>' +
+        '<td class="co">' + escapeHtml(x.company) + '</td>' +
+        '<td class="dom">' + escapeHtml(x.domain) + '</td>' +
+        '<td class="when">' + when + '</td>' +
+        '<td class="act">' +
+          '<a href="/d/' + encodeURIComponent(x.slug) + '" target="_blank">Open</a>' +
+          '<a href="/d/' + encodeURIComponent(x.slug) + '/brief" target="_blank">Brief</a>' +
+          '<button data-slug="' + escapeHtml(x.slug) + '">Delete</button>' +
+        '</td></tr>';
+    }).join('');
+    wrap.innerHTML = '<table><tbody>' + rows + '</tbody></table>';
+    wrap.querySelectorAll('button[data-slug]').forEach(function(b){
+      b.onclick = function(){
+        if (!confirm('Delete this reading?')) return;
+        fetch('/api/decks/' + encodeURIComponent(b.dataset.slug), { method:'DELETE' })
+          .then(loadDecks);
+      };
+    });
+  });
+}
+
+function escapeHtml(s){
+  return String(s == null ? '' : s).replace(/[&<>"]/g, function(c){
+    return { '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;' }[c];
+  });
+}
+
+loadDecks();
+</script>
+</body>
+</html>
