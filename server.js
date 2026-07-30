@@ -222,8 +222,14 @@ app.get('/api/prewarm/dry', requireAuth, async (req, res) => {
 // background and decks appear in the console as they land.
 app.post('/api/prewarm/run', requireAuth, (req, res) => {
   if (prewarmState().running) return res.status(409).json({ error: 'Already running.' });
-  runPrewarm().catch((e) => console.error('prewarm:', e.message));
-  res.json({ started: true, note: 'Generating in the background. Decks appear in the list as they finish.' });
+  // notify must be asked for explicitly; the default posts nothing.
+  const notify = req.query.notify === '1' || req.body?.notify === true;
+  runPrewarm({ notify }).catch((e) => console.error('prewarm:', e.message));
+  res.json({
+    started: true,
+    notify,
+    note: 'Generating in the background. Decks appear in the list as they finish.',
+  });
 });
 
 // Renders exactly what would be posted to Slack, using today's real data.
