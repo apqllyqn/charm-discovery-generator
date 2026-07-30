@@ -11,7 +11,10 @@ import { VOICE, NARRATIVE } from './brand.js';
 
 const MODEL = 'claude-opus-5';
 
-const client = new Anthropic();
+// The research pass runs a dozen searches and fetches in a single turn, which
+// blows past the SDK's 10 minute default. Both passes stream (which is the real
+// fix for long requests) and the client timeout is raised as a backstop.
+const client = new Anthropic({ timeout: 20 * 60 * 1000, maxRetries: 1 });
 
 // ---------------------------------------------------------------- pass 1
 
@@ -69,7 +72,7 @@ async function researchPass(domain, onProgress) {
   let continuations = 0;
 
   for (;;) {
-    response = await client.messages.create({
+    const stream = client.messages.stream({
       model: MODEL,
       max_tokens: 16000,
       system: RESEARCH_SYSTEM,
@@ -77,6 +80,18 @@ async function researchPass(domain, onProgress) {
       tools,
       messages,
     });
+
+    // Narrate the searches and fetches as they happen so the console is not
+    // silent for several minutes.
+    stream.on('streamEvent', (event) => {
+      if (event.type !== 'content_block_start') return;
+      const block = event.content_block;
+      if (block?.type !== 'server_tool_use') return;
+      if (block.name === 'web_search') onProgress?.('Searching the web...');
+      else if (block.name === 'web_fetch') onProgress?.('Reading a page...');
+    });
+
+    response = await stream.finalMessage();
 
     if (response.stop_reason !== 'pause_turn') break;
 
@@ -212,21 +227,23 @@ RULES FOR THIS JOB:
 `.trim();
 
 async function writePass(domain, brief) {
-  const response = await client.messages.create({
-    model: MODEL,
-    max_tokens: 16000,
-    system: WRITE_SYSTEM,
-    output_config: {
-      effort: 'high',
-      format: { type: 'json_schema', schema: DECK_SCHEMA },
-    },
-    messages: [
-      {
-        role: 'user',
-        content: `Prospect domain: ${domain}\n\nResearch brief:\n\n${brief}`,
+  const response = await client.messages
+    .stream({
+      model: MODEL,
+      max_tokens: 16000,
+      system: WRITE_SYSTEM,
+      output_config: {
+        effort: 'high',
+        format: { type: 'json_schema', schema: DECK_SCHEMA },
       },
-    ],
-  });
+      messages: [
+        {
+          role: 'user',
+          content: `Prospect domain: ${domain}\n\nResearch brief:\n\n${brief}`,
+        },
+      ],
+    })
+    .finalMessage();
 
   if (response.stop_reason === 'refusal') {
     throw new Error('The writing pass was declined by safety classifiers.');
