@@ -69,6 +69,46 @@ occasionally sneak one in despite the instruction.
 The raw research brief is kept and readable at `/d/<slug>/brief` (password gated),
 so Chris can skim the facts before the call.
 
+## Daily GHL pre-warm
+
+Each morning the app reads that day's GoHighLevel appointments, resolves each
+booker's website, and generates a deck for anyone who does not already have a
+fresh one. Decks land silently in the console. Nothing is sent anywhere.
+
+**Off by default.** With no `GHL_TOKEN` the scheduler never starts and the app
+behaves exactly as before.
+
+**Setup.** In GHL: Settings > Private Integrations > create a token scoped to
+`calendars.readonly`, `calendars/events.readonly`, `contacts.readonly`. Then set
+`GHL_TOKEN` and `GHL_LOCATION_ID` (the id in the GHL URL,
+`/v2/location/<this>/dashboard`).
+
+**Domain resolution**, in order: the contact's website field (including any
+custom field whose name looks like website / url / domain), then the email
+domain, skipping free providers like gmail and outlook. Anything unresolved is
+listed in the run report rather than guessed at.
+
+A domain with a deck younger than `PREWARM_FRESH_DAYS` (default 14) is reused
+rather than regenerated, since signals go stale and that is the premise of the
+pitch.
+
+**Endpoints** (all password gated):
+
+| Route | Does |
+| --- | --- |
+| `GET /api/prewarm/check` | Proves the token works and prints what GHL returns. Generates nothing. |
+| `GET /api/prewarm/dry` | Full run without generating: which meetings, which domains, what it would skip. Spends nothing. |
+| `POST /api/prewarm/run` | Fires the real job now. Returns immediately, generates in the background. |
+| `GET /api/prewarm/state` | Whether a run is in flight and when it last ran. |
+
+**Timing.** Defaults to 08:00 `America/Los_Angeles` via `PREWARM_HOUR` /
+`PREWARM_MINUTE` / `PREWARM_TZ`. Note a deck takes 4 to 13 minutes, so a full
+morning of meetings can take a while. If Chris has early calls, move the hour
+earlier so the decks are ready rather than still building.
+
+DST is handled by reading the real UTC offset from `Intl`, so the day window is
+23 hours on spring-forward and 25 on fall-back rather than a naive 24.
+
 ## Auth
 
 - `/` (the generator console) and `/api/*` are gated by `APP_PASSWORD`.

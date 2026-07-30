@@ -6,6 +6,8 @@ import { fileURLToPath } from 'url';
 import { initStore, saveDeck, getDeck, listDecks, deleteDeck } from './store.js';
 import { generateDeckData } from './research.js';
 import { renderDeck } from './deck.js';
+import { runPrewarm, startScheduler, prewarmState } from './prewarm.js';
+import { checkGhl, todaysAppointments } from './ghl.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const app = express();
@@ -187,6 +189,44 @@ app.get('/d/:slug/brief', requireAuth, async (req, res) => {
   res.type('text/plain').send(row.data?._brief || 'No brief stored for this deck.');
 });
 
+// ---------------------------------------------------------------- prewarm
+
+// Connectivity check: proves the token works and shows the shape GHL actually
+// returns for this account. Generates nothing.
+app.get('/api/prewarm/check', requireAuth, async (req, res) => {
+  const lines = [];
+  const log = console.log;
+  console.log = (...a) => lines.push(a.join(' '));
+  try {
+    await checkGhl();
+    res.type('text/plain').send(lines.join('\n'));
+  } catch (err) {
+    res.status(500).type('text/plain').send(lines.join('\n') + '\n\nERROR: ' + err.message);
+  } finally {
+    console.log = log;
+  }
+});
+
+// Dry run: what would today's job do? Reads GHL, resolves domains, generates
+// nothing and spends nothing.
+app.get('/api/prewarm/dry', requireAuth, async (req, res) => {
+  try {
+    res.json(await runPrewarm({ dryRun: true }));
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Fire the real job now. Returns immediately; generation continues in the
+// background and decks appear in the console as they land.
+app.post('/api/prewarm/run', requireAuth, (req, res) => {
+  if (prewarmState().running) return res.status(409).json({ error: 'Already running.' });
+  runPrewarm().catch((e) => console.error('prewarm:', e.message));
+  res.json({ started: true, note: 'Generating in the background. Decks appear in the list as they finish.' });
+});
+
+app.get('/api/prewarm/state', requireAuth, (req, res) => res.json(prewarmState()));
+
 app.get('/healthz', (req, res) => res.json({ ok: true }));
 
 // ---------------------------------------------------------------- pages
@@ -231,4 +271,5 @@ a{color:#6f49b2}</style></head><body>
 
 const PORT = process.env.PORT || 3000;
 await initStore();
+startScheduler();
 app.listen(PORT, () => console.log('charm-discovery-generator listening on ' + PORT));
