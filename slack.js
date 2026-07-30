@@ -71,7 +71,7 @@ export function buildDigest(report, tz = 'America/Los_Angeles') {
       const who = (p.title || '').replace(/\s*&\s*Charm\s*$/i, '').replace(/\s+/g, ' ').trim() || p.who || p.domain || 'unknown';
       const why =
         p.kind === 'failed'
-          ? `generation failed: ${p.error || 'unknown error'}`
+          ? `${p.domain ? p.domain + ': ' : ''}${humanError(p.error)}`
           : humanReason(p.reason, p);
       lines.push(`• ${timeLabel(p.when, tz)}  ${who} — ${why}`);
     }
@@ -83,6 +83,25 @@ export function buildDigest(report, tz = 'America/Los_Angeles') {
   }
 
   return lines.join('\n');
+}
+
+// Turn an API error into something a person reads at 8am. Raw JSON in a team
+// channel is noise, and it leaks request ids into a shared surface.
+function humanError(err) {
+  const raw = String(err || 'unknown error');
+  if (/credit balance is too low/i.test(raw)) {
+    return 'out of Anthropic API credits, top up at platform.claude.com';
+  }
+  if (/rate.?limit|429/i.test(raw)) return 'hit the Anthropic rate limit, will retry tomorrow';
+  if (/timed out|timeout/i.test(raw)) return 'research took too long and timed out';
+  if (/authentication|invalid.?api.?key|401/i.test(raw)) return 'Anthropic API key was rejected';
+  if (/overloaded|529/i.test(raw)) return 'Anthropic API was overloaded';
+  if (/declined by safety|refusal/i.test(raw)) return 'the research was declined, try this one by hand';
+
+  // Unknown error: pull the API's message field if there is one, and keep it short.
+  const m = raw.match(/"message"\s*:\s*"([^"]+)"/);
+  const text = (m ? m[1] : raw).replace(/\s+/g, ' ').trim();
+  return 'generation failed: ' + (text.length > 140 ? text.slice(0, 137) + '...' : text);
 }
 
 function humanReason(reason, p) {
