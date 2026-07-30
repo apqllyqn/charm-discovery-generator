@@ -139,16 +139,52 @@ export async function getContact(contactId) {
   return data.contact || data;
 }
 
-// Pull a website domain off a contact: explicit website field first, then the
-// email domain if it is not a free provider.
-export function domainFromContact(contact) {
+// Custom field definitions, fetched once. A contact's customFields array only
+// carries {id, value} with no name, so matching a "Website" custom field by
+// name requires this id -> name map. Without it that path silently never fires.
+let fieldNameCache = null;
+
+export async function customFieldNames() {
+  if (fieldNameCache) return fieldNameCache;
+  const map = new Map();
+  try {
+    const res = await fetch(
+      `${BASE}/locations/${locationId()}/customFields`,
+      {
+        headers: {
+          Authorization: `Bearer ${token()}`,
+          Version: '2021-07-28',
+          Accept: 'application/json',
+        },
+      }
+    );
+    if (res.ok) {
+      const data = await res.json();
+      for (const f of data.customFields || data.customField || []) {
+        if (f.id) map.set(f.id, String(f.name || f.fieldKey || ''));
+      }
+    }
+  } catch (err) {
+    console.warn('ghl: could not load custom field names:', err.message);
+  }
+  fieldNameCache = map;
+  return map;
+}
+
+// Pull a website domain off a contact: explicit website field first, then a
+// custom field that looks like a website, then the email domain if it is not a
+// free provider. Pass fieldNames from customFieldNames() to enable the middle
+// step; without it custom fields are skipped rather than silently mismatched.
+export function domainFromContact(contact, fieldNames = null) {
   if (!contact) return { domain: null, via: 'no contact' };
 
   const candidates = [contact.website, contact.companyWebsite, contact.company_website];
 
   for (const f of contact.customFields || contact.custom_fields || []) {
-    const name = String(f.name || f.key || f.fieldKey || '').toLowerCase();
-    if (/(website|web site|url|domain|company site)/.test(name)) {
+    const name = String(
+      f.name || f.key || f.fieldKey || (fieldNames && fieldNames.get(f.id)) || ''
+    ).toLowerCase();
+    if (name && /(website|web site|url|domain|company site)/.test(name)) {
       candidates.push(f.value ?? f.fieldValue ?? f.field_value);
     }
   }
@@ -179,6 +215,28 @@ export function normalizeDomain(input) {
   if (!/^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)+$/.test(d)) return null;
   if (d.split('.').pop().length < 2) return null;
   return d;
+}
+
+// Cheap liveness check before spending ten minutes and real money researching a
+// domain. Catches typos, dead domains, and junk from test bookings. A HEAD that
+// resolves and answers anything at all is enough; we are not judging content.
+export async function domainResolves(domain, timeoutMs = 8000) {
+  for (const scheme of ['https', 'http']) {
+    try {
+      const ctrl = new AbortController();
+      const t = setTimeout(() => ctrl.abort(), timeoutMs);
+      const res = await fetch(`${scheme}://${domain}`, {
+        method: 'HEAD',
+        redirect: 'follow',
+        signal: ctrl.signal,
+      });
+      clearTimeout(t);
+      if (res.status < 500) return true;
+    } catch {
+      // try the next scheme
+    }
+  }
+  return false;
 }
 
 // Prints what the account actually returns, so the response shape can be

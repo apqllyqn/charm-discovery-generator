@@ -3,7 +3,13 @@
 //
 // Decks land silently in the console. Nothing is sent anywhere.
 
-import { todaysAppointments, getContact, domainFromContact } from './ghl.js';
+import {
+  todaysAppointments,
+  getContact,
+  domainFromContact,
+  customFieldNames,
+  domainResolves,
+} from './ghl.js';
 import { generateDeckData } from './research.js';
 import { saveDeck, getDeck, listDecks } from './store.js';
 
@@ -12,6 +18,16 @@ const TZ = process.env.PREWARM_TZ || 'America/Los_Angeles';
 // A deck older than this gets regenerated rather than reused, since signals go
 // stale fast and that is the whole premise of the pitch.
 const FRESH_DAYS = Number(process.env.PREWARM_FRESH_DAYS || 14);
+
+// Domains never worth generating: internal test bookings and the like. A
+// reachability check cannot catch these because they are really registered.
+// Comma separated, e.g. PREWARM_SKIP_DOMAINS=troll.com,example.com
+const SKIP_DOMAINS = new Set(
+  (process.env.PREWARM_SKIP_DOMAINS || 'troll.com,example.com,test.com')
+    .split(',')
+    .map((s) => s.trim().toLowerCase())
+    .filter(Boolean)
+);
 
 function slugify(company, domain) {
   const base = (company || domain)
@@ -49,6 +65,7 @@ export async function runPrewarm({ dryRun = false } = {}) {
     }
 
     const seen = new Set();
+    const fieldNames = await customFieldNames();
 
     for (const appt of appointments) {
       const when = appt.startTime || appt.start_time || '';
@@ -63,7 +80,7 @@ export async function runPrewarm({ dryRun = false } = {}) {
         }
       }
 
-      const { domain, via } = domainFromContact(contact);
+      const { domain, via } = domainFromContact(contact, fieldNames);
       const who = contact?.email || contact?.name || appt.contactId || 'unknown';
 
       if (!domain) {
@@ -73,6 +90,19 @@ export async function runPrewarm({ dryRun = false } = {}) {
       }
       if (seen.has(domain)) continue;
       seen.add(domain);
+
+      if (SKIP_DOMAINS.has(domain)) {
+        report.skipped.push({ when, title, who, domain, reason: 'on the skip list' });
+        console.log(`prewarm: skip ${domain} (skip list)`);
+        continue;
+      }
+
+      // Do not spend ten minutes researching a domain that is not even live.
+      if (!(await domainResolves(domain))) {
+        report.skipped.push({ when, title, who, domain, reason: 'domain does not respond' });
+        console.log(`prewarm: skip ${domain} (does not respond)`);
+        continue;
+      }
 
       const fresh = freshByDomain.get(domain);
       if (fresh) {
