@@ -252,9 +252,17 @@ export async function checkGhl() {
   for (const a of appointments) {
     console.log('  -', a.startTime, a.title || a.appointmentTitle || '(untitled)', '| contact:', a.contactId);
   }
-  if (appointments[0]?.contactId) {
-    const c = await getContact(appointments[0].contactId);
-    console.log('first contact keys:', Object.keys(c).join(', '));
-    console.log('resolved domain:', domainFromContact(c));
+  // Resolve every contact, not just the first: the useful signal is how many
+  // of today's meetings actually yield a domain.
+  const names = await customFieldNames();
+  console.log(`custom field definitions: ${names.size}`);
+  for (const a of appointments) {
+    if (!a.contactId) continue;
+    const c = await getContact(a.contactId).catch(() => null);
+    if (!c) { console.log(`  ${a.contactId}: contact fetch failed`); continue; }
+    const r = domainFromContact(c, names);
+    console.log(
+      `  ${c.email || a.contactId} -> ${r.domain || 'NO DOMAIN'} (${r.via})`
+    );
   }
 }
