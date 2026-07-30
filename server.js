@@ -116,6 +116,25 @@ app.get('/api/decks', requireAuth, async (req, res) => {
   res.json({ decks: await listDecks() });
 });
 
+// Import or replace a deck from hand-written JSON. Lets a deck be built or
+// corrected without a generation run, which also covers the case where the
+// research pass is unavailable.
+app.post('/api/decks/import', requireAuth, async (req, res) => {
+  const { slug, domain, company, data } = req.body || {};
+  if (!slug || !domain || !data) {
+    return res.status(400).json({ error: 'slug, domain and data are required.' });
+  }
+  if (!/^[a-z0-9][a-z0-9-]*$/.test(slug)) {
+    return res.status(400).json({ error: 'slug must be lowercase letters, digits and hyphens.' });
+  }
+  try {
+    await saveDeck({ slug, domain, company: company || data.company?.name || domain, data });
+    res.json({ ok: true, url: `/d/${slug}` });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 app.delete('/api/decks/:slug', requireAuth, async (req, res) => {
   await deleteDeck(req.params.slug);
   res.json({ ok: true });
