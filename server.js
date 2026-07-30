@@ -8,6 +8,7 @@ import { generateDeckData } from './research.js';
 import { renderDeck } from './deck.js';
 import { runPrewarm, startScheduler, prewarmState } from './prewarm.js';
 import { checkGhl, todaysAppointments } from './ghl.js';
+import { buildDigest, slackConfigured } from './slack.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const app = express();
@@ -225,7 +226,23 @@ app.post('/api/prewarm/run', requireAuth, (req, res) => {
   res.json({ started: true, note: 'Generating in the background. Decks appear in the list as they finish.' });
 });
 
-app.get('/api/prewarm/state', requireAuth, (req, res) => res.json(prewarmState()));
+// Renders exactly what would be posted to Slack, using today's real data.
+// Sends nothing. This is the approval surface before enabling the digest.
+app.get('/api/prewarm/preview', requireAuth, async (req, res) => {
+  try {
+    const report = await runPrewarm({ dryRun: true });
+    res.type('text/plain').send(
+      buildDigest(report, prewarmState().tz) +
+        `\n\n--- not sent. slack ${slackConfigured() ? 'IS' : 'is NOT'} configured. ---`
+    );
+  } catch (err) {
+    res.status(500).type('text/plain').send('ERROR: ' + err.message);
+  }
+});
+
+app.get('/api/prewarm/state', requireAuth, (req, res) =>
+  res.json({ ...prewarmState(), slackConfigured: slackConfigured() })
+);
 
 app.get('/healthz', (req, res) => res.json({ ok: true }));
 

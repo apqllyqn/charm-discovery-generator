@@ -12,6 +12,7 @@ import {
 } from './ghl.js';
 import { generateDeckData } from './research.js';
 import { saveDeck, getDeck, listDecks } from './store.js';
+import { sendDigest } from './slack.js';
 
 const TZ = process.env.PREWARM_TZ || 'America/Los_Angeles';
 
@@ -45,7 +46,9 @@ export function prewarmState() {
   return { running, lastRunDate, tz: TZ };
 }
 
-export async function runPrewarm({ dryRun = false } = {}) {
+// notify defaults to false so that nothing can post by accident. Only the
+// scheduled run and an explicit notify=1 opt in.
+export async function runPrewarm({ dryRun = false, notify = false } = {}) {
   if (running) return { skipped: 'already running' };
   running = true;
   const started = Date.now();
@@ -148,6 +151,10 @@ export async function runPrewarm({ dryRun = false } = {}) {
       `generated=${report.generated.length} reused=${report.reused.length} ` +
       `skipped=${report.skipped.length} failed=${report.failed.length}`
   );
+
+  // Only ever posts on a real run that explicitly asked for it.
+  if (notify && !dryRun) report.slack = await sendDigest(report, TZ);
+
   return report;
 }
 
@@ -185,6 +192,6 @@ export function startScheduler() {
     if (lastRunDate === t.ymd || running) return;
     lastRunDate = t.ymd; // claim the slot before the await so we cannot double fire
     console.log(`prewarm: firing for ${t.ymd}`);
-    runPrewarm().catch((e) => console.error('prewarm:', e.message));
+    runPrewarm({ notify: true }).catch((e) => console.error('prewarm:', e.message));
   }, 30_000);
 }
