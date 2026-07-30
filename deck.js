@@ -19,7 +19,7 @@ const NOTES = {
   channels: 'Three channels. Charm runs outbound. This is where you say we are operators, not a tool.',
   turn: 'The narrowing. Phone is real but it is not today. Today is awareness through email and LinkedIn.',
   world: 'Read their world back to them. If you got something wrong here, that is a gift. Let them correct you.',
-  things: 'Count them on your fingers. Do not explain signals yet. Say "we will come back to that" and move on.',
+  things: 'Count them on your fingers. Three. When you hit the signals line under the words, do NOT explain it. Say "more on that in a minute" and keep moving. The curiosity is the point.',
   sequence: 'The key word is intertwined. Not three vendors, not three campaigns. One system per prospect, all running at once.',
   cool: 'Slow down. This is the turn of the whole deck. "But this is where it gets cool."',
   kid: 'Tell it like a story, not a slide. Everyone with kids nods here. The point: the wince is still pain, and dad still helps.',
@@ -36,6 +36,8 @@ function slide(id, notes, inner) {
 export function renderDeck({ slug, domain, data, dateLabel }) {
   const d = data;
   const company = d.company?.name || domain;
+  // four_things is the pre Jul 30 2026 shape, kept so older decks still render.
+  const t = d.three_things || d.four_things || {};
 
   const segments = (d.tam?.segments || [])
     .map(
@@ -175,12 +177,15 @@ export function renderDeck({ slug, domain, data, dateLabel }) {
       NOTES.things,
       `<div class="pad">
         <p class="kicker">What happens when you work with Charm</p>
-        <h2 class="h-slide">Here is what we do for you.</h2>
+        <h2 class="h-slide">Three things we do for you.</h2>
         <ol class="things">
-          <li><span class="n">1</span><div><h4>Get the leads</h4><p>${esc(d.four_things?.leads)}</p></div></li>
-          <li><span class="n">2</span><div><h4>Write the words</h4><p>${esc(d.four_things?.words)}</p></div></li>
-          <li class="teased"><span class="n">3</span><div><h4>Read the signals <span class="later">more on this in a minute</span></h4><p>${esc(d.four_things?.signals_teaser)}</p></div></li>
-          <li><span class="n">4</span><div><h4>Manage the infrastructure</h4><p>${esc(d.four_things?.infrastructure)}</p></div></li>
+          <li><span class="n">1</span><div><h4>Get the leads</h4><p>${esc(t.leads)}</p></div></li>
+          <li><span class="n">2</span><div>
+            <h4>Write the words</h4>
+            <p>${esc(t.words)}</p>
+            <p class="tease">${esc(t.signals_teaser)} <span class="later">more on this in a minute</span></p>
+          </div></li>
+          <li><span class="n">3</span><div><h4>Manage the infrastructure</h4><p>${esc(t.infrastructure)}</p></div></li>
         </ol>
       </div>`
     ),
@@ -417,7 +422,10 @@ body{
 }
 .things h4{font-size:2.4vh;font-weight:600;margin-bottom:.4vh}
 .things p{font-size:1.65vh;line-height:1.5;color:var(--muted)}
-.things .teased h4{color:var(--purple)}
+.things .tease{
+  margin-top:.9vh;padding-left:1.4vh;border-left:.3vh solid var(--purple);
+  color:var(--purple)!important;font-weight:500;
+}
 .later{
   font-size:1.2vh;letter-spacing:.1em;text-transform:uppercase;color:#fff;
   background:var(--purple);padding:.35vh .9vh;border-radius:99px;

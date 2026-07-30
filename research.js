@@ -152,9 +152,11 @@ export const DECK_SCHEMA = obj({
     linkedin: str,
     phone: str,
   }),
-  four_things: obj({
+  three_things: obj({
     leads: str,
     words: str,
+    // A single clause that lives inside the "write the words" card. Signals do
+    // not get their own numbered slot; they get their reveal later in the deck.
     signals_teaser: str,
     infrastructure: str,
   }),
@@ -199,6 +201,10 @@ specific prospect. You are given a research brief. Turn it into deck copy.
 RULES FOR THIS JOB:
 - Every field is prospect-specific. If a line would read the same for any
   company, rewrite it.
+- three_things.signals_teaser is ONE short sentence that sits underneath the
+  "write the words" line as a tease. It hints that the words change based on
+  what we see happening in their buyers' world, without explaining signals yet.
+  Do not describe the mechanism. That reveal comes later in the deck.
 - Deck copy, not prose. Slide lines are short. No paragraph runs on a slide.
 - Never invent a fact that is not in the brief. If the brief says unknown, write
   around it rather than filling it in.

@@ -69,11 +69,12 @@ THE DECK NARRATIVE (this is the fixed spine, every deck follows it):
 2. How do you do that? Channels.
 3. Charm focuses on outbound channels: email, LinkedIn, phone.
 4. Today we are talking about driving AWARENESS using email and LinkedIn.
-5. There are things we do for you:
+5. There are THREE things we do for you:
    1. Get leads
-   2. Write the words and the strategy
-   3. Read the signals (teased here, explained later)
-   4. Manage the infrastructure
+   2. Write the words and the strategy. Signals get a soft one line tease
+      inside this one, not their own slot. Chris says "more on that in a
+      minute" and moves on.
+   3. Manage the infrastructure
 6. We run all of these at the same time, creating intertwined multi-touch
    sequences for EVERY prospect in your TAM.
 7. Then the reveal: signals. People in your market do not just explicitly feel
