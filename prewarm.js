@@ -23,6 +23,18 @@ const FRESH_DAYS = Number(process.env.PREWARM_FRESH_DAYS || 14);
 // Domains never worth generating: internal test bookings and the like. A
 // reachability check cannot catch these because they are really registered.
 // Comma separated, e.g. PREWARM_SKIP_DOMAINS=troll.com,example.com
+// Manual email to domain mapping, for people who book from a personal address.
+// Without this they are skipped forever, because guessing a company from a
+// gmail address produces confidently wrong decks. Format:
+//   PREWARM_EMAIL_DOMAINS=someone@gmail.com=acme.com,other@gmail.com=foo.io
+const EMAIL_OVERRIDES = new Map(
+  (process.env.PREWARM_EMAIL_DOMAINS || '')
+    .split(',')
+    .map((pair) => pair.split('='))
+    .filter((p) => p.length === 2 && p[0].includes('@'))
+    .map(([email, domain]) => [email.trim().toLowerCase(), domain.trim().toLowerCase()])
+);
+
 const SKIP_DOMAINS = new Set(
   (process.env.PREWARM_SKIP_DOMAINS || 'troll.com,example.com,test.com')
     .split(',')
@@ -83,8 +95,11 @@ export async function runPrewarm({ dryRun = false, notify = false } = {}) {
         }
       }
 
-      const { domain, via } = domainFromContact(contact, fieldNames);
       const who = contact?.email || contact?.name || appt.contactId || 'unknown';
+      const override = EMAIL_OVERRIDES.get(String(contact?.email || '').toLowerCase());
+      const { domain, via } = override
+        ? { domain: override, via: 'manual mapping' }
+        : domainFromContact(contact, fieldNames);
 
       if (!domain) {
         report.skipped.push({ when, title, who, reason: via });
