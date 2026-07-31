@@ -83,10 +83,16 @@ behaves exactly as before.
 `GHL_TOKEN` and `GHL_LOCATION_ID` (the id in the GHL URL,
 `/v2/location/<this>/dashboard`).
 
-**Domain resolution**, in order: the contact's website field (including any
-custom field whose name looks like website / url / domain), then the email
-domain, skipping free providers like gmail and outlook. Anything unresolved is
-listed in the run report rather than guessed at.
+**Domain resolution**, in order: the contact's website field (GHL's native
+`contact.website`, which is what the booking form's website field writes to),
+then any custom field whose name looks like website / url / domain, then the
+email domain, skipping free providers like gmail and outlook. Anything
+unresolved is listed in the run report rather than guessed at, because inferring
+a company from a personal email produces confidently wrong decks.
+
+Contacts created before the booking form had a website field will not resolve if
+they used a personal address. Map those explicitly with `PREWARM_EMAIL_DOMAINS`
+(`someone@gmail.com=acme.com,other@gmail.com=foo.io`) rather than guessing.
 
 A domain with a deck younger than `PREWARM_FRESH_DAYS` (default 14) is reused
 rather than regenerated, since signals go stale and that is the premise of the
