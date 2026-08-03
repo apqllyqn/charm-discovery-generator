@@ -67,10 +67,31 @@ export async function runPrewarm({ dryRun = false, notify = false } = {}) {
   const report = { date: null, meetings: 0, generated: [], reused: [], skipped: [], failed: [] };
 
   try {
-    const { date, appointments } = await todaysAppointments(TZ);
+    const { date, appointments: raw } = await todaysAppointments(TZ);
     report.date = date;
+
+    // Collapse duplicate bookings by the same contact on the same day, keeping
+    // the earliest slot. Someone double booking themselves is common, and
+    // counting it twice makes the digest read as though a meeting was missed.
+    const byContact = new Map();
+    const noContact = [];
+    for (const a of raw) {
+      if (!a.contactId) { noContact.push(a); continue; }
+      const seen = byContact.get(a.contactId);
+      if (!seen || String(a.startTime) < String(seen.startTime)) byContact.set(a.contactId, a);
+    }
+    const appointments = [...byContact.values(), ...noContact].sort((x, y) =>
+      String(x.startTime).localeCompare(String(y.startTime))
+    );
+
     report.meetings = appointments.length;
-    console.log(`prewarm: ${appointments.length} meeting(s) on ${date} (${TZ})`);
+    report.duplicatesCollapsed = raw.length - appointments.length;
+    console.log(
+      `prewarm: ${appointments.length} meeting(s) on ${date} (${TZ})` +
+        (report.duplicatesCollapsed
+          ? `, ${report.duplicatesCollapsed} duplicate booking(s) collapsed`
+          : '')
+    );
 
     const existing = await listDecks(500);
     const cutoff = Date.now() - FRESH_DAYS * 86400000;
