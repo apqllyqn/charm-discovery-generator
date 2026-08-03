@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>Label</key>
+  <string>com.charm.discovery-prewarm</string>
+
+  <key>ProgramArguments</key>
+  <array>
+    <string>/opt/homebrew/bin/node</string>
+    <string>/Users/sarahbachmeier/Projects/charm-discovery-generator/local/daily-run.mjs</string>
+    <!-- The server posts the single digest at 08:00. This job only generates. -->
+    <string>--no-slack</string>
+  </array>
+
+  <key>WorkingDirectory</key>
+  <string>/Users/sarahbachmeier/Projects/charm-discovery-generator</string>
+
+  <key>EnvironmentVariables</key>
+  <dict>
+    <!-- claude lives in ~/.local/bin, node in homebrew. launchd has a bare PATH. -->
+    <key>PATH</key>
+    <string>/Users/sarahbachmeier/.local/bin:/opt/homebrew/bin:/usr/bin:/bin:/usr/sbin:/sbin</string>
+  </dict>
+
+  <!-- 06:30 local, which is 06:30 PT on this machine. Ninety minutes of
+       headroom before the server's 08:00 digest, enough for several decks. -->
+  <key>StartCalendarInterval</key>
+  <dict>
+    <key>Hour</key><integer>6</integer>
+    <key>Minute</key><integer>30</integer>
+  </dict>
+
+  <!-- If the Mac was asleep at 06:30, run as soon as it wakes. -->
+  <key>RunAtLoad</key>
+  <false/>
+
+  <key>StandardOutPath</key>
+  <string>/Users/sarahbachmeier/Projects/charm-discovery-generator/local/prewarm.log</string>
+  <key>StandardErrorPath</key>
+  <string>/Users/sarahbachmeier/Projects/charm-discovery-generator/local/prewarm.log</string>
+
+  <key>ProcessType</key>
+  <string>Background</string>
+</dict>
+</plist>
