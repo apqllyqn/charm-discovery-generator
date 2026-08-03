@@ -9,8 +9,10 @@
   <array>
     <string>/opt/homebrew/bin/node</string>
     <string>/Users/sarahbachmeier/Projects/charm-discovery-generator/local/daily-run.mjs</string>
-    <!-- The server posts the single digest at 08:00. This job only generates. -->
-    <string>--no-slack</string>
+    <!-- The server posts the 08:00 digest. This job only generates, except
+         when it generates something AFTER the digest already went out, in
+         which case daily-run.mjs posts a short catch-up message itself. -->
+    <string>--catch-up</string>
   </array>
 
   <key>WorkingDirectory</key>
@@ -23,17 +25,17 @@
     <string>/Users/sarahbachmeier/.local/bin:/opt/homebrew/bin:/usr/bin:/bin:/usr/sbin:/sbin</string>
   </dict>
 
-  <!-- 06:30 local, which is 06:30 PT on this machine. Ninety minutes of
-       headroom before the server's 08:00 digest, enough for several decks. -->
-  <key>StartCalendarInterval</key>
-  <dict>
-    <key>Hour</key><integer>6</integer>
-    <key>Minute</key><integer>30</integer>
-  </dict>
+  <!-- Run every 30 minutes rather than once at 06:30. The job is idempotent:
+       it skips decks that already exist and exits in about two seconds when
+       there is nothing to do. So whenever the Mac is on, it catches up within
+       half an hour instead of missing the day entirely. -->
+  <key>StartInterval</key>
+  <integer>1800</integer>
 
-  <!-- If the Mac was asleep at 06:30, run as soon as it wakes. -->
+  <!-- Also run the moment the agent loads, which is at login. A Mac that was
+       off overnight starts catching up as soon as you sit down at it. -->
   <key>RunAtLoad</key>
-  <false/>
+  <true/>
 
   <key>StandardOutPath</key>
   <string>/Users/sarahbachmeier/Projects/charm-discovery-generator/local/prewarm.log</string>
@@ -42,5 +44,8 @@
 
   <key>ProcessType</key>
   <string>Background</string>
+
+  <key>LowPriorityIO</key>
+  <true/>
 </dict>
 </plist>

@@ -14,9 +14,30 @@ and writing happen in one pass using its built in WebSearch and WebFetch.
 The server never calls the Anthropic API in this arrangement, because by 08:00
 every deck already exists and gets reused. `ANTHROPIC_API_KEY` can stay unset.
 
-**If the Mac is asleep or offline at 06:30**, nothing breaks loudly: the server
-still runs at 08:00 and the digest reports those prospects as needing a deck.
-You lose the pre-generation, not the notification.
+## What happens when the Mac is off
+
+This is the real weakness of the subscription route, so it is worth being plain
+about it. If the Mac is off, **nothing generates**. The server's 08:00 digest
+still fires, because that runs on the server and does not care about your
+laptop, but it reports those prospects as needing a deck rather than handing
+over a link.
+
+The scheduling is built around that rather than pretending it away:
+
+- The job runs **every 30 minutes**, not once at 06:30, and also **at login**.
+- It is **idempotent**: it skips decks that already exist and exits in about
+  three seconds when there is nothing to do, silently.
+- So whenever the Mac comes on, it catches up within half an hour. Open the lid
+  at 09:00 and a 14:00 call still has a deck by 09:30.
+- If decks land **after** the 08:00 digest already said they were missing, the
+  run posts an updated digest so the Slack thread is not left lying.
+- Between `PREWARM_ACTIVE_UNTIL` (18:00) and `PREWARM_ACTIVE_FROM` (05:00) it
+  does nothing at all, so it is not researching at 3am.
+
+**The case it cannot solve:** the Mac stays off all day and there is a call.
+Nothing generates, and the 08:00 digest is the only warning you get. If that is
+unacceptable for a given day, run it by hand from any machine that has Claude
+Code, or generate the deck in a Claude Code session and import it.
 
 ## Usage
 
@@ -50,13 +71,15 @@ To stop:
 launchctl unload ~/Library/LaunchAgents/com.charm.discovery-prewarm.plist
 ```
 
-The job runs at **06:30 local**, and this Mac is on `America/Los_Angeles`, so
-that is 06:30 PT. It passes `--no-slack` because the server owns the digest.
+The job runs **every 30 minutes** and **at login**, passing `--catch-up`. It is
+silent unless there is something to generate. See "What happens when the Mac is
+off" above for why it is not a single 06:30 run.
 
 ### Two things that will bite you
 
-**The Mac has to be awake.** launchd will not wake a sleeping machine on its
-own. Either leave it plugged in and awake, or schedule a wake:
+**launchd will not wake a sleeping Mac.** The every-30-minutes schedule covers
+you once it is awake, but to have decks ready before you sit down, schedule a
+wake:
 
 ```sh
 sudo pmset repeat wakeorpoweron MTWRF 06:25:00

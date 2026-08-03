@@ -19,6 +19,24 @@ const TZ = 'America/Los_Angeles';
 const DRY = process.argv.includes('--dry-run');
 const NO_SLACK = process.argv.includes('--no-slack');
 
+// Scheduled mode. The job runs every 30 minutes so it can catch up whenever the
+// Mac happens to be on, so it has to be cheap and quiet when there is nothing
+// to do, and it must not re-announce a digest the server already sent.
+const CATCH_UP = process.argv.includes('--catch-up');
+
+// Outside these hours a scheduled run exits immediately. No point researching
+// at 2am, and a deck generated after the last call of the day is wasted.
+const ACTIVE_FROM = Number(process.env.PREWARM_ACTIVE_FROM ?? 5);
+const ACTIVE_UNTIL = Number(process.env.PREWARM_ACTIVE_UNTIL ?? 18);
+
+function hourIn(tz) {
+  return Number(
+    new Intl.DateTimeFormat('en-CA', { timeZone: tz, hour12: false, hour: '2-digit' })
+      .formatToParts(new Date())
+      .find((p) => p.type === 'hour').value
+  ) % 24;
+}
+
 const keychain = (service, account) => {
   try {
     return execFileSync('security', ['find-generic-password', '-s', service, '-a', account, '-w'], {
@@ -52,6 +70,11 @@ async function serverSession() {
 }
 
 async function main() {
+  const hour = hourIn(TZ);
+  if (CATCH_UP && (hour < ACTIVE_FROM || hour >= ACTIVE_UNTIL)) {
+    // Quiet exit: this runs every 30 minutes and should say nothing overnight.
+    return;
+  }
   if (!process.env.GHL_TOKEN || !process.env.GHL_LOCATION_ID) {
     throw new Error('GHL credentials not found in Keychain (charm-discovery / ghl-token, ghl-location)');
   }
@@ -61,15 +84,21 @@ async function main() {
   if (!dryRes.ok) throw new Error(`server dry run failed: ${dryRes.status}`);
   const plan = await dryRes.json();
 
-  log(`${plan.date}: ${plan.meetings} meeting(s)` +
-      (plan.duplicatesCollapsed ? `, ${plan.duplicatesCollapsed} duplicate(s) collapsed` : ''));
-
   const needed = plan.generated || [];        // dry run marks these as "would generate"
-  const already = plan.reused || [];
-  for (const r of already) log(`  already have ${r.domain} -> /d/${r.slug}`);
-  for (const s of plan.skipped || []) log(`  skipping ${s.domain || s.who}: ${s.reason}`);
+
+  // Scheduled runs happen every 30 minutes, so they only narrate when there is
+  // actually work to do. Otherwise the log is unreadable within a day.
+  if (!CATCH_UP || needed.length) {
+    log(`${plan.date}: ${plan.meetings} meeting(s)` +
+        (plan.duplicatesCollapsed ? `, ${plan.duplicatesCollapsed} duplicate(s) collapsed` : ''));
+    for (const r of plan.reused || []) log(`  already have ${r.domain} -> /d/${r.slug}`);
+    for (const s of plan.skipped || []) log(`  skipping ${s.domain || s.who}: ${s.reason}`);
+  }
 
   if (!needed.length) {
+    // In catch-up mode this is the overwhelmingly common case, so stay quiet
+    // and stop here: there is nothing new to announce.
+    if (CATCH_UP) return;
     log('nothing to generate');
   } else {
     log(`generating ${needed.length} deck(s) via the Claude subscription`);
@@ -107,6 +136,13 @@ async function main() {
 
   if (NO_SLACK || DRY) {
     log('skipping the Slack digest');
+    return;
+  }
+  // Scheduled mode: before the server's 08:00 digest there is nothing to say,
+  // it will report everything as ready on its own. Only speak up when decks
+  // landed AFTER that digest already went out saying they were missing.
+  if (CATCH_UP && hour < 8) {
+    log('generated before the 08:00 digest, letting the server announce it');
     return;
   }
   // Everything generated above is now stored, so the server's own run finds it
