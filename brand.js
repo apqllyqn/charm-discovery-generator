@@ -27,6 +27,26 @@ export const BRAND = {
   booking: 'https://api.leadconnectorhq.com/widget/booking/KDdgICxdFa0FJQgNSt8c',
 };
 
+// Proof shown on the credibility slide. Cold traffic has no idea who we are,
+// so this sits right after the cover and buys permission for the rest.
+//
+// NUMBERS ONLY, no logos and no testimonials, on purpose:
+//   - the case-study logo files live in the proposal repo, not on a CDN this
+//     deck can reach, and the roster rule keeps case-study logos out of trust
+//     strips anyway
+//   - no testimonial here is permission-cleared yet
+// Every figure below is copied from the shipped Focal proposal. Highline is
+// deliberately absent: its metrics are still marked pending there.
+export const PROOF = {
+  line: 'Clay World Championship winners. Founder-led since day one.',
+  stats: [
+    { value: '$35M', label: 'pipeline', who: 'Hello Hero', note: '300+ school leads' },
+    { value: '$4.2M', label: 'pipeline', who: 'Rightworks', note: '28% reply rate' },
+    { value: '$1.8M', label: 'pipeline', who: 'VirtualFork', note: '35% reply rate' },
+    { value: '156x', label: 'return, 120 days', who: "Ben's Bites", note: '40+ campaigns tested' },
+  ],
+};
+
 export const VOICE = `
 BRAND: Charm (hirecharm.com), a go-to-market AGENCY. Not software, not a SaaS
 platform, not an inbox or domain vendor. We are operators who run the whole

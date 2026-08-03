@@ -1,7 +1,24 @@
 // Renders a personalized discovery deck from generated deck data.
 // One self-contained HTML file, 16:9, keyboard driven.
+//
+// Design language is deliberately the same as the Focal proposal: cream paper,
+// grain, Instrument Serif for statements, Geist Mono for labels, numbered
+// sections. The deck is the piece before the proposal, so the two should read
+// as one document set rather than two vendors.
+//
+// Sizing is in container query units against #deck, not vh. The deck box is
+// letterboxed to 16:9, so vh only matched the box on wide windows and overflowed
+// on tall ones.
 
-import { BRAND } from './brand.js';
+import { BRAND, PROOF } from './brand.js';
+import {
+  GRAIN_URI,
+  funnel,
+  channelMesh,
+  screamWave,
+  winceWave,
+  lockup,
+} from './visuals.js';
 
 const esc = (v) =>
   String(v ?? '')
@@ -14,23 +31,25 @@ const nl2br = (v) => esc(v).replace(/\n/g, '<br>');
 
 const NOTES = {
   cover: 'Hold here while they settle. Say their company name out loud. Nothing else on this slide on purpose.',
+  proof: 'Ten seconds, not sixty. They came from a cold email and do not know us yet. Read one number, not four, then move. "That is the last time I talk about us."',
   tof: 'Ask it as a real question. "What are we actually doing at the top of the funnel?" Wait. Then answer: generate awareness, educate.',
   how: 'One word answer. Channels. Let it land before you list them.',
-  channels: 'Three channels. Charm runs outbound. This is where you say we are operators, not a tool.',
+  channels: 'Three channels, one team. Point at the convergence. This is where you say we are operators, not a tool.',
   turn: 'The narrowing. Phone is real but it is not today. Today is awareness through email and LinkedIn.',
   world: 'Read their world back to them. If you got something wrong here, that is a gift. Let them correct you.',
+  segments: 'Ask which segment they would start with. Their answer tells you where the real pipeline pressure is.',
   things: 'Count them on your fingers. Three. When you hit the signals line under the words, do NOT explain it. Say "more on that in a minute" and keep moving. The curiosity is the point.',
   sequence: 'The key word is intertwined. Not three vendors, not three campaigns. One system per prospect, all running at once.',
   cool: 'Slow down. This is the turn of the whole deck. "But this is where it gets cool."',
-  kid: 'Tell it like a story, not a slide. Everyone with kids nods here. The point: the wince is still pain, and dad still helps.',
+  kid: 'Tell it like a story, not a slide. Everyone with kids nods here. Point at the dotted line: that is where every other agency starts selling. The wince never crosses it, and it is still pain.',
   signals: 'These are theirs, not generic. Ask which one they would want us watching first.',
   touches: 'Real copy, triggered by a real signal. Do not defend the copy. Ask what they would change.',
   read: 'Slow. This is the read. End on the question and then stop talking.',
   close: 'Two calls. This one was the read. The next one is the remedy. Pull up the calendar while this is on screen.',
 };
 
-function slide(id, notes, inner) {
-  return `<section class="slide" data-id="${esc(id)}" data-notes="${esc(notes)}">${inner}</section>`;
+function slide(id, notes, inner, klass = '') {
+  return `<section class="slide ${klass}" data-id="${esc(id)}" data-notes="${esc(notes)}">${inner}</section>`;
 }
 
 export function renderDeck({ slug, domain, data, dateLabel }) {
@@ -38,6 +57,23 @@ export function renderDeck({ slug, domain, data, dateLabel }) {
   const company = d.company?.name || domain;
   // four_things is the pre Jul 30 2026 shape, kept so older decks still render.
   const t = d.three_things || d.four_things || {};
+
+  // Sections are numbered the way the proposal numbers them: content slides
+  // count, statement slides do not.
+  let sectionNo = 0;
+  const kicker = (label) =>
+    `<p class="kicker"><span class="k-num">${String(++sectionNo).padStart(2, '0')}</span> / ${esc(label)}</p>`;
+
+  const stats = PROOF.stats
+    .map(
+      (s) => `<div class="stat">
+        <div class="stat-v">${esc(s.value)}</div>
+        <div class="stat-l">${esc(s.label)}</div>
+        <div class="stat-w">${esc(s.who)}</div>
+        <div class="stat-n">${esc(s.note)}</div>
+      </div>`
+    )
+    .join('');
 
   const segments = (d.tam?.segments || [])
     .map(
@@ -49,16 +85,14 @@ export function renderDeck({ slug, domain, data, dateLabel }) {
     )
     .join('');
 
-  const titles = (d.icp?.buyer_titles || [])
-    .map((t) => `<li>${esc(t)}</li>`)
-    .join('');
+  const titles = (d.icp?.buyer_titles || []).map((x) => `<li>${esc(x)}</li>`).join('');
 
   const touches = (d.sequence?.touches || [])
     .map(
-      (t) => `<tr>
-        <td class="t-day">${esc(t.day)}</td>
-        <td class="t-chan"><span class="chip chip-${esc((t.channel || '').toLowerCase().replace(/[^a-z]/g, ''))}">${esc(t.channel)}</span></td>
-        <td>${esc(t.what)}</td>
+      (x) => `<tr>
+        <td class="t-day">${esc(x.day)}</td>
+        <td class="t-chan"><span class="chip chip-${esc((x.channel || '').toLowerCase().replace(/[^a-z]/g, ''))}">${esc(x.channel)}</span></td>
+        <td>${esc(x.what)}</td>
       </tr>`
     )
     .join('');
@@ -72,14 +106,12 @@ export function renderDeck({ slug, domain, data, dateLabel }) {
         </div>
         <h3>${esc(s.name)}</h3>
         <p class="sig-look">${esc(s.what_it_looks_like)}</p>
-        <p class="sig-act"><strong>We act:</strong> ${esc(s.how_we_act)}</p>
+        <p class="sig-act"><strong>We act.</strong> ${esc(s.how_we_act)}</p>
       </div>`
     )
     .join('');
 
-  const observed = (d.read?.observed || [])
-    .map((o) => `<li>${esc(o)}</li>`)
-    .join('');
+  const observed = (d.read?.observed || []).map((o) => `<li>${esc(o)}</li>`).join('');
 
   const sources = (d.sources || [])
     .map((s) => `<li><a href="${esc(s.url)}" target="_blank" rel="noopener">${esc(s.title)}</a></li>`)
@@ -89,73 +121,98 @@ export function renderDeck({ slug, domain, data, dateLabel }) {
     slide(
       'cover',
       NOTES.cover,
-      `<div class="cover">
-        <img class="mark" src="${BRAND.logo}" alt="Charm">
-        <h1>${esc(company)}</h1>
+      `<div class="cover grain">
+        ${lockup(domain, BRAND.logo)}
+        <h1 class="serif">${esc(company)}</h1>
         <p class="cover-sub">A reading, prepared by Charm</p>
-        <p class="cover-date">${esc(dateLabel)}</p>
+        <p class="cover-date mono">${esc(dateLabel)}</p>
+      </div>`
+    ),
+
+    // Cold traffic has no idea who we are. One slide of proof, then never
+    // about us again.
+    slide(
+      'proof',
+      NOTES.proof,
+      `<div class="pad grain">
+        ${kicker('Who you are talking to')}
+        <h2 class="h-slide serif">We run outbound for companies<br>who need pipeline, not advice.</h2>
+        <div class="stats">${stats}</div>
+        <p class="foot mono">${esc(PROOF.line)}</p>
       </div>`
     ),
 
     slide(
       'tof',
       NOTES.tof,
-      `<div class="statement">
-        <p class="ask">What are we doing at the top of the funnel?</p>
-        <h2>Generate awareness.<br>Educate.</h2>
+      `<div class="pad grain split">
+        <div class="split-l">
+          <p class="ask mono">What are we doing at the top of the funnel?</p>
+          <h2 class="statement-h serif">Generate awareness.<br>Educate.</h2>
+          <p class="lead">Everything below this band is a different job for a different day.</p>
+        </div>
+        <div class="split-r">${funnel()}</div>
       </div>`
     ),
 
     slide(
       'how',
       NOTES.how,
-      `<div class="statement">
-        <p class="ask">How do we do that?</p>
-        <h2>Channels.</h2>
+      `<div class="statement grain">
+        <p class="ask mono">How do we do that?</p>
+        <h2 class="serif">Channels.</h2>
       </div>`
     ),
 
     slide(
       'channels',
       NOTES.channels,
-      `<div class="pad">
-        <p class="kicker">Charm runs outbound</p>
-        <h2 class="h-slide">Three channels.</h2>
-        <div class="chan-grid">
-          <div class="chan"><div class="chan-name">Email</div><p>${esc(d.channels?.email)}</p></div>
-          <div class="chan"><div class="chan-name">LinkedIn</div><p>${esc(d.channels?.linkedin)}</p></div>
-          <div class="chan"><div class="chan-name">Phone</div><p>${esc(d.channels?.phone)}</p></div>
+      `<div class="pad grain">
+        ${kicker('Charm runs outbound')}
+        <h2 class="h-slide serif">Three channels. One team.</h2>
+        <div class="split-mesh">
+          <div class="mesh-art">${channelMesh()}</div>
+          <div class="chan-stack">
+            <div class="chan"><div class="chan-name mono">Email</div><p>${esc(d.channels?.email)}</p></div>
+            <div class="chan"><div class="chan-name mono">LinkedIn</div><p>${esc(d.channels?.linkedin)}</p></div>
+            <div class="chan"><div class="chan-name mono">Phone</div><p>${esc(d.channels?.phone)}</p></div>
+          </div>
         </div>
-        <p class="foot">One team runs all three. Not three vendors.</p>
       </div>`
     ),
 
     slide(
       'turn',
       NOTES.turn,
-      `<div class="statement dark">
-        <p class="ask light">We are here to talk about</p>
-        <h2>Driving <em>awareness</em><br>using Email and LinkedIn.</h2>
-      </div>`
+      `<div class="pad ink grain narrow-pad">
+        <p class="ask mono">We are here to talk about</p>
+        <h2 class="statement-h serif">Driving <em>awareness</em><br>using email and LinkedIn.</h2>
+        <div class="narrowing">
+          <div class="nw nw-on"><span class="mono">Email</span></div>
+          <div class="nw nw-on"><span class="mono">LinkedIn</span></div>
+          <div class="nw nw-off"><span class="mono">Phone</span><span class="nw-tag mono">not today</span></div>
+        </div>
+      </div>`,
+      'ink'
     ),
 
     slide(
       'world',
       NOTES.world,
-      `<div class="pad">
-        <p class="kicker">Your world, as we read it</p>
-        <h2 class="h-slide">${esc(company)}</h2>
+      `<div class="pad grain">
+        ${kicker('Your world, as we read it')}
+        <h2 class="h-slide serif">${esc(company)}</h2>
         <p class="lead">${esc(d.company?.one_liner)}</p>
         <div class="two-col">
           <div class="card">
-            <h4>Who you sell to</h4>
+            <h4 class="mono">Who you sell to</h4>
             <p>${esc(d.icp?.who_they_sell_to)}</p>
-            <ul class="titles">${titles}</ul>
+            <ul class="titles mono">${titles}</ul>
             <p class="small">${esc(d.icp?.deal_shape)}</p>
           </div>
           <div class="card card-tint">
-            <h4>Your TAM</h4>
-            <p class="tam-head">${esc(d.tam?.headline)}</p>
+            <h4 class="mono">Your TAM</h4>
+            <p class="tam-head serif">${esc(d.tam?.headline)}</p>
             <p class="small">${esc(d.tam?.reasoning)}</p>
           </div>
         </div>
@@ -164,10 +221,10 @@ export function renderDeck({ slug, domain, data, dateLabel }) {
 
     slide(
       'segments',
-      'Ask which segment they would start with. Their answer tells you where the real pipeline pressure is.',
-      `<div class="pad">
-        <p class="kicker">Where the TAM splits</p>
-        <h2 class="h-slide">Three doors into the same market.</h2>
+      NOTES.segments,
+      `<div class="pad grain">
+        ${kicker('Where the TAM splits')}
+        <h2 class="h-slide serif">Three doors into the same market.</h2>
         <div class="seg-grid">${segments}</div>
       </div>`
     ),
@@ -175,17 +232,26 @@ export function renderDeck({ slug, domain, data, dateLabel }) {
     slide(
       'things',
       NOTES.things,
-      `<div class="pad">
-        <p class="kicker">What happens when you work with Charm</p>
-        <h2 class="h-slide">Three things we do for you.</h2>
+      `<div class="pad grain">
+        ${kicker('What happens when you work with Charm')}
+        <h2 class="h-slide serif">Three things we do for you.</h2>
         <ol class="things">
-          <li><span class="n">1</span><div><h4>Get the leads</h4><p>${esc(t.leads)}</p></div></li>
-          <li><span class="n">2</span><div>
-            <h4>Write the words</h4>
-            <p>${esc(t.words)}</p>
-            <p class="tease">${esc(t.signals_teaser)} <span class="later">more on this in a minute</span></p>
-          </div></li>
-          <li><span class="n">3</span><div><h4>Manage the infrastructure</h4><p>${esc(t.infrastructure)}</p></div></li>
+          <li>
+            <img class="wiz" src="${BRAND.wizards.cast}" alt="">
+            <div><h4>Get the leads</h4><p>${esc(t.leads)}</p></div>
+          </li>
+          <li>
+            <img class="wiz" src="${BRAND.wizards.orb}" alt="">
+            <div>
+              <h4>Write the words</h4>
+              <p>${esc(t.words)}</p>
+              <p class="tease">${esc(t.signals_teaser)} <span class="later mono">more on this in a minute</span></p>
+            </div>
+          </li>
+          <li>
+            <img class="wiz" src="${BRAND.wizards.broom}" alt="">
+            <div><h4>Manage the infrastructure</h4><p>${esc(t.infrastructure)}</p></div>
+          </li>
         </ol>
       </div>`
     ),
@@ -193,52 +259,54 @@ export function renderDeck({ slug, domain, data, dateLabel }) {
     slide(
       'sequence',
       NOTES.sequence,
-      `<div class="pad">
-        <p class="kicker">All of it, at the same time</p>
-        <h2 class="h-slide">${esc(d.sequence?.headline)}</h2>
+      `<div class="pad grain">
+        ${kicker('All of it, at the same time')}
+        <h2 class="h-slide serif">${esc(d.sequence?.headline)}</h2>
         <p class="lead">${esc(d.sequence?.body)}</p>
         <table class="touches"><tbody>${touches}</tbody></table>
-        <p class="foot">One intertwined sequence per prospect. Every prospect in your TAM.</p>
+        <p class="foot mono">One intertwined sequence per prospect. Every prospect in your TAM.</p>
       </div>`
     ),
 
     slide(
       'cool',
       NOTES.cool,
-      `<div class="statement dark">
-        <h2 class="big">But this is where<br>it gets cool.</h2>
-      </div>`
+      `<div class="statement ink grain">
+        <h2 class="serif big">But this is where<br>it gets cool.</h2>
+      </div>`,
+      'ink'
     ),
 
     slide(
       'kid',
       NOTES.kid,
-      `<div class="pad">
-        <p class="kicker">Signals</p>
-        <h2 class="h-slide">Pain is not always stated.</h2>
-        <p class="lead">It ebbs. It flows. It builds.</p>
-        <div class="kid-grid">
-          <div class="kid">
-            <div class="kid-label">The scream</div>
+      `<div class="pad grain">
+        ${kicker('Signals')}
+        <h2 class="h-slide serif">Pain is not always stated.</h2>
+        <div class="waves">
+          <div class="wv">
+            <div class="wv-head"><span class="wv-label mono">The scream</span><span class="wv-note mono">everyone sees it</span></div>
+            ${screamWave()}
             <p>A kid hurts himself and screams. Dad knows to help.</p>
-            <p class="kid-map">In your market: the job posting. The RFP. The public complaint. Everyone sees it, and everyone is already selling into it.</p>
+            <p class="wv-map">The job posting. The RFP. The public complaint. Everyone is already selling into it.</p>
           </div>
-          <div class="kid kid-quiet">
-            <div class="kid-label">The wince</div>
+          <div class="wv wv-quiet">
+            <div class="wv-head"><span class="wv-label mono">The wince</span><span class="wv-note mono">only if you are watching</span></div>
+            ${winceWave()}
             <p>Or he holds his arm and winces without a sound. Dad still knows to help.</p>
-            <p class="kid-map">In your market: headcount drift. A quiet tooling swap. A leader who left. Nobody is selling into it yet, because nobody is watching.</p>
+            <p class="wv-map">Headcount drift. A quiet tooling swap. A leader who left. Nobody is selling into it yet.</p>
           </div>
         </div>
-        <p class="foot">Not all pain the people we can help feel is stated explicitly. Signals are how we hear the wince.</p>
+        <p class="foot mono">The dotted line is where every other agency starts selling. The wince never crosses it.</p>
       </div>`
     ),
 
     slide(
       'signals',
       NOTES.signals,
-      `<div class="pad">
-        <p class="kicker">Signals we would watch for ${esc(company)}</p>
-        <h2 class="h-slide">What we listen for.</h2>
+      `<div class="pad grain">
+        ${kicker('Signals we would watch for ' + company)}
+        <h2 class="h-slide serif">What we listen for.</h2>
         <div class="sig-grid">${signals}</div>
       </div>`
     ),
@@ -246,19 +314,19 @@ export function renderDeck({ slug, domain, data, dateLabel }) {
     slide(
       'touches',
       NOTES.touches,
-      `<div class="pad">
-        <p class="kicker">What that looks like in the sequence</p>
-        <h2 class="h-slide">The signal fires. The words change.</h2>
+      `<div class="pad grain">
+        ${kicker('What that looks like in the sequence')}
+        <h2 class="h-slide serif">The signal fires. The words change.</h2>
         <div class="two-col">
           <div class="card">
-            <h4>Email</h4>
-            <p class="trigger">Triggered by: ${esc(d.sample_email?.signal_used)}</p>
-            <p class="subject">Subject: ${esc(d.sample_email?.subject)}</p>
+            <h4 class="mono">Email</h4>
+            <p class="trigger mono">Triggered by: ${esc(d.sample_email?.signal_used)}</p>
+            <p class="subject">${esc(d.sample_email?.subject)}</p>
             <p class="body">${nl2br(d.sample_email?.body)}</p>
           </div>
           <div class="card">
-            <h4>LinkedIn</h4>
-            <p class="trigger">Triggered by: ${esc(d.sample_linkedin?.signal_used)}</p>
+            <h4 class="mono">LinkedIn</h4>
+            <p class="trigger mono">Triggered by: ${esc(d.sample_linkedin?.signal_used)}</p>
             <p class="body"><strong>Connection note.</strong><br>${nl2br(d.sample_linkedin?.connection_note)}</p>
             <p class="body"><strong>Follow up.</strong><br>${nl2br(d.sample_linkedin?.follow_up)}</p>
           </div>
@@ -269,42 +337,50 @@ export function renderDeck({ slug, domain, data, dateLabel }) {
     slide(
       'read',
       NOTES.read,
-      `<div class="pad">
-        <p class="kicker">The read</p>
-        <h2 class="h-slide">Here is what we noticed.</h2>
-        <ul class="observed">${observed}</ul>
-        <div class="gap">
-          <p>${esc(d.read?.gap)}</p>
+      `<div class="pad grain read-pad">
+        <div class="read-main">
+          ${kicker('The read')}
+          <h2 class="h-slide serif">Here is what we noticed.</h2>
+          <ul class="observed">${observed}</ul>
+          <div class="gap"><p>${esc(d.read?.gap)}</p></div>
+          <p class="question serif">&ldquo;${esc(d.read?.question)}&rdquo;</p>
         </div>
-        <p class="question">"${esc(d.read?.question)}"</p>
+        <img class="wiz-big" src="${BRAND.wizards.read}" alt="">
       </div>`
     ),
 
     slide(
       'close',
       NOTES.close,
-      `<div class="pad">
-        <p class="kicker">The whole process</p>
-        <h2 class="h-slide">Two calls.</h2>
+      `<div class="pad grain">
+        ${kicker('The whole process')}
+        <h2 class="h-slide serif">Two calls.</h2>
         <div class="steps">
           <div class="step step-now">
-            <div class="step-n">1</div>
+            <div class="step-n mono">01</div>
             <h4>This call</h4>
             <p>The read. We listen, we look at what is actually happening, we tell you what we see.</p>
-            <div class="you-are-here">you are here</div>
+            <div class="you-are-here mono">you are here</div>
           </div>
           <div class="step">
-            <div class="step-n">2</div>
+            <div class="step-n mono">02</div>
             <h4>The next call</h4>
             <p>The remedy. Scope, sequence, investment. Remedy, not menu.</p>
           </div>
           <div class="step">
-            <div class="step-n">3</div>
+            <div class="step-n mono">03</div>
             <h4>Go live</h4>
             <p>Our team runs it. You decide what you want to say.</p>
           </div>
         </div>
-        ${sources ? `<details class="sources"><summary>Sources used to build this reading</summary><ul>${sources}</ul></details>` : ''}
+        <div class="close-cta">
+          <img class="wiz-cta" src="${BRAND.wizards.highfive}" alt="">
+          <div class="cta-copy">
+            <p class="cta-line serif">Ready for the remedy?</p>
+            <a class="cta-btn mono" href="${BRAND.booking}" target="_blank" rel="noopener">Book a reading</a>
+          </div>
+        </div>
+        ${sources ? `<details class="sources"><summary class="mono">Sources used to build this reading</summary><ul>${sources}</ul></details>` : ''}
       </div>`
     ),
   ].join('\n');
@@ -318,233 +394,323 @@ export function renderDeck({ slug, domain, data, dateLabel }) {
 <title>${esc(company)} · a reading by Charm</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Instrument+Serif:ital@0;1&family=Geist+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
 :root{
-  --purple:${BRAND.purple}; --deep:${BRAND.deep}; --soft:${BRAND.soft};
-  --tint:${BRAND.tint}; --accent:${BRAND.lightAccent};
-  --ink:${BRAND.ink}; --ink2:${BRAND.ink2}; --muted:${BRAND.muted}; --muted2:${BRAND.muted2};
-  --line:${BRAND.line}; --line2:${BRAND.line2};
+  --accent:${BRAND.purple};
+  --accent-2:${BRAND.soft};
+  --accent-bright:${BRAND.lightAccent};
+  --accent-soft:rgba(111,73,178,.10);
+  --accent-mid:rgba(111,73,178,.22);
+
+  --paper:#FAFAF7; --paper-2:#F2F1EC; --paper-3:#E9E8E2;
+  --ink:#0A0A0B; --ink-2:#141416; --ink-3:#1C1C20;
+
+  --line:rgba(0,0,0,.10);
+  --line-strong:rgba(0,0,0,.28);
+  --text:#0A0A0B;
+  --text-dim:rgba(0,0,0,.55);
+  --text-dim-2:rgba(0,0,0,.40);
+
+  --wave-ink:var(--accent);
+  --wave-base:rgba(0,0,0,.18);
+  --wave-threshold:rgba(0,0,0,.30);
 }
 *{box-sizing:border-box;margin:0;padding:0}
 html,body{height:100%}
 body{
-  font-family:${BRAND.font};
-  background:#0d0b11;color:var(--ink);
+  font-family:'Inter',system-ui,Helvetica,Arial,sans-serif;
+  background:#0a0a0b;color:var(--text);
   display:flex;align-items:center;justify-content:center;overflow:hidden;
+  -webkit-font-smoothing:antialiased;
 }
+.serif{font-family:'Instrument Serif',Georgia,serif;font-weight:400;letter-spacing:-.02em;line-height:.98}
+.mono{font-family:'Geist Mono',ui-monospace,monospace}
+
 #stage{position:relative;width:100vw;height:100vh;display:flex;align-items:center;justify-content:center}
 #deck{
   position:relative;width:min(100vw, 177.78vh);height:min(100vh, 56.25vw);
-  background:#fff;overflow:hidden;box-shadow:0 30px 90px rgba(0,0,0,.5);
+  background:var(--paper);overflow:hidden;box-shadow:0 30px 90px rgba(0,0,0,.55);
+  /* everything inside sizes off the deck box, not the window */
+  container-type:size;container-name:deck;
 }
-.slide{
-  position:absolute;inset:0;display:none;
-  padding:0;background:#fff;
-}
+.slide{position:absolute;inset:0;display:none;background:var(--paper);color:var(--text)}
 .slide.active{display:block}
-
-/* layout primitives, sized in cqw-ish units off the deck height */
-.pad{position:absolute;inset:0;padding:5.2% 6.5%;display:flex;flex-direction:column}
-.kicker{
-  font-size:1.35vh;letter-spacing:.16em;text-transform:uppercase;
-  color:var(--purple);font-weight:600;margin-bottom:1.6vh;
+.slide.ink{background:var(--ink);color:#fff;
+  --text:#fff;--text-dim:rgba(255,255,255,.58);--text-dim-2:rgba(255,255,255,.40);
+  --line:rgba(255,255,255,.12);--line-strong:rgba(255,255,255,.30);
+  --accent:var(--accent-bright);
+  --wave-ink:var(--accent-bright);--wave-base:rgba(255,255,255,.18);--wave-threshold:rgba(255,255,255,.30);
 }
-.kicker::before{content:"\\2726  ";}
-.h-slide{font-size:4.6vh;line-height:1.08;font-weight:700;letter-spacing:-.02em;margin-bottom:1.8vh}
-.lead{font-size:2.1vh;line-height:1.5;color:var(--ink2);max-width:78%;margin-bottom:2.6vh}
-.small{font-size:1.55vh;line-height:1.5;color:var(--muted)}
-.foot{margin-top:auto;padding-top:2vh;font-size:1.6vh;color:var(--muted);border-top:1px solid var(--line)}
 
-/* cover */
+/* paper grain, same surface as the proposal */
+.grain{position:relative}
+.grain::before{
+  content:"";position:absolute;inset:0;pointer-events:none;z-index:0;
+  background-image:${GRAIN_URI};opacity:.5;mix-blend-mode:multiply;
+}
+.slide.ink .grain::before{mix-blend-mode:screen;opacity:.35}
+.grain > *{position:relative;z-index:1}
+
+/* ---------------------------------------------------------------- layout */
+.pad{position:absolute;inset:0;padding:5.6cqh 6.4cqh;display:flex;flex-direction:column}
+.kicker{
+  font-family:'Geist Mono',monospace;font-size:1.5cqh;font-weight:500;
+  letter-spacing:.12em;text-transform:uppercase;color:var(--text-dim);
+  margin-bottom:2.2cqh;
+}
+.k-num{color:var(--accent);font-weight:600}
+.h-slide{font-size:6.4cqh;margin-bottom:2.2cqh}
+.statement-h{font-size:8.4cqh}
+.lead{font-size:2.2cqh;line-height:1.45;color:var(--text-dim);max-width:74%;margin-bottom:2.6cqh}
+.small{font-size:1.6cqh;line-height:1.5;color:var(--text-dim)}
+.ask{font-size:1.5cqh;letter-spacing:.12em;text-transform:uppercase;color:var(--text-dim);margin-bottom:2.4cqh}
+.foot{
+  margin-top:auto;padding-top:2cqh;border-top:1px solid var(--line);
+  font-size:1.4cqh;letter-spacing:.06em;color:var(--text-dim-2);
+}
+em{font-style:italic;color:var(--accent)}
+
+/* ---------------------------------------------------------------- cover */
 .cover{
   position:absolute;inset:0;display:flex;flex-direction:column;
   align-items:center;justify-content:center;text-align:center;
-  background:radial-gradient(120% 90% at 50% 10%, #ffffff 0%, var(--tint) 100%);
+  background:var(--paper);
 }
-.cover .mark{width:9vh;margin-bottom:4vh;opacity:.9}
-.cover h1{font-size:7vh;font-weight:700;letter-spacing:-.03em;line-height:1.05;max-width:80%}
-.cover-sub{margin-top:2.4vh;font-size:1.9vh;color:var(--purple);font-weight:500;letter-spacing:.02em}
-.cover-date{margin-top:.8vh;font-size:1.5vh;color:var(--muted2)}
+.lockup{display:flex;align-items:center;gap:2.4cqh;margin-bottom:5cqh}
+.lockup img{height:5.4cqh;width:auto;display:block}
+.lk-them{border-radius:.8cqh}
+.lk-x{font-size:2.4cqh;color:var(--text-dim-2)}
+.lockup.lk-solo .lk-them,.lockup.lk-solo .lk-x{display:none}
+.cover h1{font-size:11cqh;max-width:84%}
+.cover-sub{margin-top:3cqh;font-size:2.1cqh;color:var(--accent)}
+.cover-date{margin-top:1.2cqh;font-size:1.4cqh;letter-spacing:.14em;text-transform:uppercase;color:var(--text-dim-2)}
 
-/* statement slides */
+/* ---------------------------------------------------------------- proof */
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:0;flex:1;align-content:center;min-height:0}
+.stat{padding:0 2.6cqh;border-left:1px solid var(--line);display:flex;flex-direction:column;justify-content:center}
+.stat:first-child{border-left:0;padding-left:0}
+.stat-v{font-family:'Instrument Serif',Georgia,serif;font-size:7.6cqh;line-height:1;letter-spacing:-.02em}
+.stat-l{font-family:'Geist Mono',monospace;font-size:1.3cqh;letter-spacing:.12em;text-transform:uppercase;color:var(--accent);margin-top:.8cqh}
+.stat-w{font-size:2cqh;font-weight:600;margin-top:2cqh}
+.stat-n{font-size:1.5cqh;color:var(--text-dim);margin-top:.4cqh}
+
+/* ---------------------------------------------------------------- statements */
 .statement{
   position:absolute;inset:0;display:flex;flex-direction:column;
   align-items:flex-start;justify-content:center;padding:0 9%;
 }
-.statement .ask{font-size:2.2vh;color:var(--muted);margin-bottom:2.2vh;font-weight:400}
-.statement h2{font-size:7.4vh;line-height:1.06;font-weight:700;letter-spacing:-.03em}
-.statement .big{font-size:8.6vh}
-.statement em{font-style:normal;color:var(--accent)}
-.statement.dark{
-  background:linear-gradient(135deg, var(--deep) 0%, #120a24 70%, #000 100%);
-  color:#fff;
-}
-.statement.dark .ask,.statement.dark .ask.light{color:var(--accent)}
+.statement h2{font-size:9.6cqh}
+.statement .big{font-size:11cqh}
 
-/* channels */
-.chan-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:2.4vh;margin-top:1.4vh}
-.chan{
-  border:1px solid var(--line);border-radius:1.4vh;padding:3vh 2.4vh;
-  background:linear-gradient(180deg,#fff, #fbfaff);
-}
-.chan-name{font-size:2.6vh;font-weight:700;margin-bottom:1.2vh;color:var(--purple)}
-.chan p{font-size:1.65vh;line-height:1.55;color:var(--ink2)}
+/* split: copy left, art right */
+.split{flex-direction:row;align-items:center;gap:5cqh}
+.split-l{flex:1 1 46%;min-width:0}
+.split-r{flex:1 1 54%;min-width:0;position:relative;display:flex;align-items:center;justify-content:center}
+.art{width:100%;height:auto;max-height:74cqh;overflow:visible}
+.fn-label{font-family:'Geist Mono',monospace;font-size:11px;letter-spacing:.14em;text-anchor:middle;fill:var(--text-dim)}
+.fn-label-lit{fill:#fff;font-weight:600}
+.fn-label-faint{fill:var(--text-dim-2)}
+.fn-here{font-family:'Geist Mono',monospace;font-size:11px;letter-spacing:.14em;fill:var(--accent);font-weight:500}
 
-/* two column */
-.two-col{display:grid;grid-template-columns:1fr 1fr;gap:2.4vh;flex:1;min-height:0}
-.card{border:1px solid var(--line);border-radius:1.4vh;padding:2.8vh;overflow:hidden}
-.card-tint{background:var(--tint);border-color:#e0d5f4}
-.card h4{font-size:1.35vh;letter-spacing:.14em;text-transform:uppercase;color:var(--purple);margin-bottom:1.4vh;font-weight:600}
-.card p{font-size:1.75vh;line-height:1.5;color:var(--ink2);margin-bottom:1.2vh}
-.titles{list-style:none;display:flex;flex-wrap:wrap;gap:.7vh;margin:1.2vh 0}
+/* ---------------------------------------------------------------- channels */
+.split-mesh{display:flex;gap:4cqh;flex:1;min-height:0;align-items:center}
+.mesh-art{flex:1 1 52%;min-width:0}
+.chan-stack{flex:1 1 48%;display:flex;flex-direction:column;gap:1.6cqh}
+.chan{border-top:1px solid var(--line);padding-top:1.4cqh}
+.chan-name{font-size:1.4cqh;letter-spacing:.14em;text-transform:uppercase;color:var(--accent);margin-bottom:.7cqh}
+.chan p{font-size:1.75cqh;line-height:1.5;color:var(--text-dim)}
+.ch-label{font-family:'Geist Mono',monospace;font-size:13px;letter-spacing:.1em;text-anchor:middle;fill:var(--text)}
+.ch-dim .ch-label{fill:var(--text-dim-2)}
+.ch-core{font-family:'Geist Mono',monospace;font-size:14px;font-weight:600;letter-spacing:.16em;text-anchor:middle;fill:#fff}
+.ch-core-sub{font-family:'Geist Mono',monospace;font-size:10px;letter-spacing:.1em;text-anchor:middle;fill:rgba(255,255,255,.55)}
+
+/* ---------------------------------------------------------------- the turn */
+.narrow-pad{justify-content:center}
+.narrowing{display:flex;gap:1.6cqh;margin-top:4cqh}
+.nw{
+  padding:1.4cqh 2.6cqh;border-radius:99px;border:1px solid var(--accent);
+  font-size:1.6cqh;letter-spacing:.1em;text-transform:uppercase;color:var(--accent);
+}
+.nw-off{border-color:var(--line);color:var(--text-dim-2);display:flex;align-items:center;gap:1.2cqh}
+.nw-off span:first-child{text-decoration:line-through}
+.nw-tag{font-size:1.1cqh;letter-spacing:.14em;opacity:.75;text-decoration:none}
+
+/* ---------------------------------------------------------------- cards */
+/* Body blocks size to their content and stay under the headline. Stretching
+   them left short generated copy pooled at the top of a very tall card;
+   centring them opened a gap between the headline and the content, which read
+   as broken rather than as space. Top aligned with content-height cards is the
+   combination that survives both short and long copy. */
+.two-col{display:grid;grid-template-columns:1fr 1fr;gap:2.6cqh;flex:1;min-height:0;
+  grid-auto-rows:min-content;align-content:start}
+.card{border:1px solid var(--line);border-radius:1.2cqh;padding:3cqh;overflow:hidden;background:rgba(255,255,255,.5)}
+.card-tint{background:var(--accent-soft);border-color:var(--accent-mid)}
+.card h4{font-size:1.3cqh;letter-spacing:.14em;text-transform:uppercase;color:var(--accent);margin-bottom:1.6cqh;font-weight:500}
+.card p{font-size:1.8cqh;line-height:1.5;color:var(--text-dim);margin-bottom:1.2cqh}
+.titles{list-style:none;display:flex;flex-wrap:wrap;gap:.7cqh;margin:1.4cqh 0}
 .titles li{
-  font-size:1.4vh;padding:.5vh 1.1vh;border:1px solid var(--line2);
-  border-radius:99px;color:var(--ink2);background:#fff;
+  font-size:1.25cqh;padding:.5cqh 1.1cqh;border:1px solid var(--line);
+  border-radius:99px;color:var(--text-dim);background:var(--paper);
 }
-.tam-head{font-size:2.6vh!important;font-weight:600;color:var(--deep)}
+.tam-head{font-size:4.4cqh!important;color:var(--text)!important;margin-bottom:1.4cqh!important}
 
-/* segments */
-.seg-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:2.2vh;flex:1;min-height:0}
-.seg{border-top:.4vh solid var(--purple);padding-top:2vh}
-.seg-name{font-size:2.3vh;font-weight:700;margin-bottom:.5vh}
-.seg-size{font-size:1.45vh;color:var(--purple);font-weight:600;margin-bottom:1.2vh}
-.seg p{font-size:1.6vh;line-height:1.55;color:var(--muted)}
+/* ---------------------------------------------------------------- segments */
+.seg-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:2.6cqh;flex:1;min-height:0;
+  grid-auto-rows:min-content;align-content:start}
+.seg{border-top:2px solid var(--accent);padding-top:2.2cqh}
+.seg-name{font-size:2.5cqh;font-weight:600;margin-bottom:.5cqh}
+.seg-size{font-family:'Geist Mono',monospace;font-size:1.35cqh;letter-spacing:.08em;color:var(--accent);margin-bottom:1.4cqh}
+.seg p{font-size:1.65cqh;line-height:1.55;color:var(--text-dim)}
 
-/* four things */
-.things{list-style:none;display:flex;flex-direction:column;gap:1.5vh;flex:1;justify-content:center}
-.things li{display:flex;gap:2.2vh;align-items:flex-start;padding:1.5vh 0;border-bottom:1px solid var(--line)}
+/* ---------------------------------------------------------------- three things */
+.things{list-style:none;display:flex;flex-direction:column;gap:1.2cqh;flex:1;justify-content:center}
+.things li{display:flex;gap:2.6cqh;align-items:center;padding:1.6cqh 0;border-bottom:1px solid var(--line)}
 .things li:last-child{border-bottom:none}
-.things .n{
-  flex:0 0 auto;width:4.6vh;height:4.6vh;border-radius:50%;
-  background:linear-gradient(135deg,var(--purple),#9a6ae0);color:#fff;
-  display:flex;align-items:center;justify-content:center;font-weight:700;font-size:2vh;
-}
-.things h4{font-size:2.4vh;font-weight:600;margin-bottom:.4vh}
-.things p{font-size:1.65vh;line-height:1.5;color:var(--muted)}
+.wiz{flex:0 0 auto;height:9.5cqh;width:auto;object-fit:contain}
+.things h4{font-size:2.7cqh;font-weight:600;margin-bottom:.5cqh}
+.things p{font-size:1.7cqh;line-height:1.5;color:var(--text-dim)}
 .things .tease{
-  margin-top:.9vh;padding-left:1.4vh;border-left:.3vh solid var(--purple);
-  color:var(--purple)!important;font-weight:500;
+  margin-top:1cqh;padding-left:1.4cqh;border-left:2px solid var(--accent);
+  color:var(--accent)!important;
 }
 .later{
-  font-size:1.2vh;letter-spacing:.1em;text-transform:uppercase;color:#fff;
-  background:var(--purple);padding:.35vh .9vh;border-radius:99px;
-  margin-left:1vh;vertical-align:middle;font-weight:600;
+  font-size:1.1cqh;letter-spacing:.12em;text-transform:uppercase;color:var(--paper);
+  background:var(--accent);padding:.35cqh .9cqh;border-radius:99px;
+  margin-left:1cqh;vertical-align:middle;
 }
 
-/* sequence table */
-.touches{width:100%;border-collapse:collapse;margin-bottom:1vh}
-.touches td{padding:1.15vh .8vh;border-bottom:1px solid var(--line);font-size:1.6vh;color:var(--ink2);vertical-align:top}
-.t-day{width:12%;color:var(--muted);font-variant-numeric:tabular-nums}
+/* ---------------------------------------------------------------- sequence */
+.touches{width:100%;border-collapse:collapse;margin-bottom:1cqh}
+.touches td{padding:1.2cqh .8cqh;border-bottom:1px solid var(--line);font-size:1.65cqh;color:var(--text-dim);vertical-align:top}
+.t-day{width:12%;font-family:'Geist Mono',monospace;font-size:1.4cqh;color:var(--text-dim-2)}
 .t-chan{width:16%}
 .chip{
-  display:inline-block;font-size:1.25vh;font-weight:600;padding:.35vh 1vh;border-radius:99px;
-  background:var(--tint);color:var(--deep);
+  display:inline-block;font-family:'Geist Mono',monospace;font-size:1.2cqh;
+  padding:.35cqh 1cqh;border-radius:99px;background:var(--accent-soft);color:var(--accent);
+  letter-spacing:.06em;
 }
-.chip-linkedin{background:#e6efff;color:#1c4ea8}
-.chip-phone{background:#fdf0e6;color:#9a5a17}
+.chip-linkedin{background:rgba(28,78,168,.10);color:#1c4ea8}
+.chip-phone{background:rgba(154,90,23,.10);color:#9a5a17}
 
-/* kid analogy */
-.kid-grid{display:grid;grid-template-columns:1fr 1fr;gap:2.6vh;flex:1;min-height:0}
-.kid{border-radius:1.4vh;padding:2.8vh;background:#fbfaff;border:1px solid var(--line)}
-.kid-quiet{background:linear-gradient(160deg,var(--deep),#160c2b);color:#fff;border-color:transparent}
-.kid-label{font-size:1.3vh;letter-spacing:.16em;text-transform:uppercase;font-weight:600;color:var(--purple);margin-bottom:1.4vh}
-.kid-quiet .kid-label{color:var(--accent)}
-.kid p{font-size:1.9vh;line-height:1.5;margin-bottom:1.4vh}
-.kid-map{font-size:1.55vh!important;color:var(--muted)}
-.kid-quiet .kid-map{color:#c9c2d8}
+/* ---------------------------------------------------------------- waveform */
+.waves{display:grid;grid-template-columns:1fr 1fr;gap:4cqh;flex:1;min-height:0;
+  grid-auto-rows:min-content;align-content:center}
+.wv{display:flex;flex-direction:column}
+.wv-head{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:1.4cqh}
+.wv-label{font-size:1.5cqh;letter-spacing:.14em;text-transform:uppercase;color:var(--accent);font-weight:500}
+.wv-note{font-size:1.2cqh;letter-spacing:.08em;color:var(--text-dim-2)}
+.art-wave{width:100%;height:14cqh;margin-bottom:1.8cqh}
+.wv p{font-size:1.85cqh;line-height:1.45;margin-bottom:1cqh}
+.wv-map{font-size:1.55cqh!important;color:var(--text-dim)}
+.wv-quiet{--wave-ink:var(--accent-2)}
 
-/* signals */
-.sig-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(20%,1fr));gap:1.8vh;flex:1;min-height:0}
-.sig{border:1px solid var(--line);border-radius:1.2vh;padding:2.2vh 1.9vh;display:flex;flex-direction:column}
-.sig-wincing{background:linear-gradient(165deg,var(--deep),#160c2b);border-color:transparent;color:#fff}
-.sig-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:1.2vh}
-.sig-num{font-size:1.5vh;font-weight:700;color:var(--purple)}
-.sig-wincing .sig-num{color:var(--accent)}
+/* ---------------------------------------------------------------- signals */
+.sig-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(18%,1fr));gap:1.8cqh;flex:1;min-height:0;
+  grid-auto-rows:min-content;align-content:start}
+.sig{border:1px solid var(--line);border-radius:1cqh;padding:2.2cqh 1.9cqh;display:flex;flex-direction:column;background:rgba(255,255,255,.5)}
+.sig-wincing{background:var(--ink);border-color:transparent;color:#fff}
+.sig-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:1.4cqh}
+.sig-num{font-family:'Geist Mono',monospace;font-size:1.4cqh;color:var(--accent)}
+.sig-wincing .sig-num{color:var(--accent-bright)}
 .sig-tag{
-  font-size:1.1vh;letter-spacing:.12em;text-transform:uppercase;font-weight:600;
-  padding:.3vh .8vh;border-radius:99px;background:var(--tint);color:var(--deep);
+  font-family:'Geist Mono',monospace;font-size:1cqh;letter-spacing:.12em;text-transform:uppercase;
+  padding:.3cqh .8cqh;border-radius:99px;background:var(--accent-soft);color:var(--accent);
 }
-.sig-wincing .sig-tag{background:rgba(196,169,239,.2);color:var(--accent)}
-.sig h3{font-size:1.95vh;font-weight:600;line-height:1.25;margin-bottom:1vh}
-.sig p{font-size:1.45vh;line-height:1.5;color:var(--muted);margin-bottom:1vh}
-.sig-wincing p{color:#c9c2d8}
-.sig-act{margin-top:auto;margin-bottom:0!important;color:var(--ink2)!important}
-.sig-wincing .sig-act{color:#e6e0f2!important}
-.sig-act strong{color:var(--purple)}
-.sig-wincing .sig-act strong{color:var(--accent)}
+.sig-wincing .sig-tag{background:rgba(196,169,239,.18);color:var(--accent-bright)}
+.sig h3{font-size:2cqh;font-weight:600;line-height:1.2;margin-bottom:1cqh}
+.sig p{font-size:1.45cqh;line-height:1.5;color:var(--text-dim);margin-bottom:1cqh}
+.sig-wincing p{color:rgba(255,255,255,.62)}
+.sig-act{margin-top:auto;margin-bottom:0!important}
+.sig-act strong{color:var(--accent);font-weight:600}
+.sig-wincing .sig-act strong{color:var(--accent-bright)}
 
-/* sample copy */
-.trigger{font-size:1.35vh!important;color:var(--purple)!important;font-weight:600;margin-bottom:1.2vh!important}
-.subject{font-weight:600;font-size:1.85vh!important;padding-bottom:1.2vh;border-bottom:1px solid var(--line)}
-.body{font-size:1.7vh!important;line-height:1.6;white-space:normal}
+/* ---------------------------------------------------------------- sample copy */
+.trigger{font-size:1.3cqh!important;letter-spacing:.08em;color:var(--accent)!important;margin-bottom:1.4cqh!important}
+.subject{font-weight:600;font-size:2cqh!important;color:var(--text)!important;padding-bottom:1.2cqh;border-bottom:1px solid var(--line)}
+.body{font-size:1.7cqh!important;line-height:1.6}
 
-/* read */
-.observed{list-style:none;display:flex;flex-direction:column;gap:1vh;margin-bottom:2.4vh}
-.observed li{font-size:1.9vh;line-height:1.45;padding-left:2.6vh;position:relative;color:var(--ink2)}
-.observed li::before{content:"\\2726";position:absolute;left:0;color:var(--purple)}
-.gap{background:var(--tint);border-left:.5vh solid var(--purple);padding:2vh 2.4vh;border-radius:0 1vh 1vh 0}
-.gap p{font-size:2.1vh;line-height:1.45;font-weight:500;color:var(--deep)}
-.question{margin-top:auto;font-size:2.6vh;line-height:1.35;font-weight:600;letter-spacing:-.01em}
+/* ---------------------------------------------------------------- read */
+.read-pad{flex-direction:row;align-items:stretch;gap:3cqh}
+.read-main{flex:1 1 auto;display:flex;flex-direction:column;min-width:0}
+.wiz-big{flex:0 0 auto;height:34cqh;width:auto;align-self:flex-end;object-fit:contain;opacity:.95}
+.observed{list-style:none;display:flex;flex-direction:column;gap:1cqh;margin-bottom:2.6cqh}
+.observed li{font-size:1.9cqh;line-height:1.4;padding-left:2.6cqh;position:relative;color:var(--text-dim)}
+.observed li::before{content:"";position:absolute;left:0;top:.75cqh;width:1.2cqh;height:1px;background:var(--accent)}
+.gap{background:var(--accent-soft);border-left:2px solid var(--accent);padding:2.2cqh 2.6cqh}
+.gap p{font-size:2.1cqh;line-height:1.4;color:var(--text)}
+.question{margin-top:auto;font-size:4.4cqh}
 
-/* close */
-.steps{display:grid;grid-template-columns:repeat(3,1fr);gap:2.2vh;flex:1;align-content:center}
-.step{border:1px solid var(--line);border-radius:1.4vh;padding:2.8vh;position:relative}
-.step-now{border-color:var(--purple);background:var(--tint)}
-.step-n{
-  width:4.2vh;height:4.2vh;border-radius:50%;background:var(--ink);color:#fff;
-  display:flex;align-items:center;justify-content:center;font-weight:700;font-size:1.9vh;margin-bottom:1.6vh;
-}
-.step-now .step-n{background:var(--purple)}
-.step h4{font-size:2.2vh;font-weight:600;margin-bottom:.9vh}
-.step p{font-size:1.6vh;line-height:1.5;color:var(--muted)}
+/* ---------------------------------------------------------------- close */
+.steps{display:grid;grid-template-columns:repeat(3,1fr);gap:2.4cqh}
+.step{border:1px solid var(--line);border-radius:1.2cqh;padding:2.6cqh;position:relative;background:rgba(255,255,255,.5)}
+.step-now{border-color:var(--accent);background:var(--accent-soft)}
+.step-n{font-size:1.5cqh;letter-spacing:.12em;color:var(--text-dim-2);margin-bottom:1.4cqh}
+.step-now .step-n{color:var(--accent)}
+.step h4{font-size:2.2cqh;font-weight:600;margin-bottom:.8cqh}
+.step p{font-size:1.55cqh;line-height:1.5;color:var(--text-dim)}
 .you-are-here{
-  position:absolute;top:-1.3vh;right:1.8vh;font-size:1.15vh;letter-spacing:.12em;
-  text-transform:uppercase;font-weight:600;background:var(--purple);color:#fff;
-  padding:.4vh 1vh;border-radius:99px;
+  position:absolute;top:-1.1cqh;right:1.8cqh;font-size:1.05cqh;letter-spacing:.12em;
+  text-transform:uppercase;background:var(--accent);color:var(--paper);
+  padding:.4cqh 1cqh;border-radius:99px;
 }
-.sources{margin-top:2vh;font-size:1.4vh;color:var(--muted)}
-.sources summary{cursor:pointer;color:var(--purple)}
-.sources ul{margin-top:1vh;padding-left:2vh;display:flex;flex-direction:column;gap:.5vh}
-.sources a{color:var(--muted)}
+.close-cta{
+  margin-top:auto;display:flex;align-items:center;gap:2.4cqh;
+  border-top:1px solid var(--line);padding-top:2cqh;
+}
+.wiz-cta{height:11cqh;width:auto;object-fit:contain}
+.cta-copy{display:flex;align-items:center;gap:2.4cqh}
+.cta-line{font-size:3.4cqh}
+.cta-btn{
+  display:inline-block;background:var(--accent);color:var(--paper);text-decoration:none;
+  padding:1.2cqh 2.4cqh;border-radius:99px;font-size:1.4cqh;letter-spacing:.1em;
+  text-transform:uppercase;white-space:nowrap;
+}
+.sources{margin-top:1.4cqh;font-size:1.3cqh;color:var(--text-dim-2)}
+.sources summary{cursor:pointer;color:var(--accent);letter-spacing:.08em}
+.sources ul{margin-top:1cqh;padding-left:2cqh;display:flex;flex-direction:column;gap:.5cqh}
+.sources a{color:var(--text-dim)}
 
-/* chrome */
+/* ---------------------------------------------------------------- chrome */
 #chrome{
   position:fixed;bottom:1.6vh;left:0;right:0;display:flex;justify-content:center;
-  gap:1.6vh;align-items:center;font-size:1.4vh;color:#7d7590;z-index:20;
-  opacity:0;transition:opacity .2s;pointer-events:none;
+  gap:1.6vh;align-items:center;font-family:'Geist Mono',monospace;font-size:1.4vh;
+  color:#8a8494;z-index:20;opacity:0;transition:opacity .2s;pointer-events:none;
 }
 #stage:hover #chrome{opacity:1;pointer-events:auto}
 #chrome button{
-  font:inherit;background:rgba(255,255,255,.08);color:#cfc7de;border:1px solid rgba(255,255,255,.12);
+  font:inherit;background:rgba(255,255,255,.08);color:#cfc7de;border:1px solid rgba(255,255,255,.14);
   border-radius:99px;padding:.5vh 1.4vh;cursor:pointer;
 }
-#counter{font-variant-numeric:tabular-nums;letter-spacing:.08em}
-#progress{position:fixed;top:0;left:0;height:3px;background:var(--purple);z-index:30;transition:width .25s}
+#counter{letter-spacing:.12em}
+#progress{position:fixed;top:0;left:0;height:2px;background:${BRAND.purple};z-index:30;transition:width .25s}
 #notes{
-  position:fixed;left:0;right:0;bottom:0;background:#15111c;color:#d9d2e6;
+  position:fixed;left:0;right:0;bottom:0;background:#0A0A0B;color:#e6e2ee;
   padding:2.2vh 4vh;font-size:1.7vh;line-height:1.5;display:none;z-index:25;
-  border-top:2px solid var(--purple);
+  border-top:2px solid ${BRAND.purple};
 }
 #notes.on{display:block}
-#notes b{color:var(--accent);display:block;font-size:1.2vh;letter-spacing:.14em;text-transform:uppercase;margin-bottom:.8vh}
-#menu{
-  position:fixed;inset:0;background:rgba(10,8,14,.94);z-index:40;display:none;
-  padding:8vh;overflow:auto;
+#notes b{
+  font-family:'Geist Mono',monospace;color:${BRAND.lightAccent};display:block;font-size:1.1vh;
+  letter-spacing:.16em;text-transform:uppercase;margin-bottom:.8vh;font-weight:500;
 }
+#menu{position:fixed;inset:0;background:rgba(10,10,11,.95);z-index:40;display:none;padding:8vh;overflow:auto}
 #menu.on{display:block}
-#menu h3{color:#fff;font-size:2vh;margin-bottom:3vh;letter-spacing:.14em;text-transform:uppercase;font-weight:600}
+#menu h3{
+  font-family:'Geist Mono',monospace;color:#fff;font-size:1.5vh;margin-bottom:3vh;
+  letter-spacing:.16em;text-transform:uppercase;font-weight:500;
+}
 #menu ol{list-style:none;display:grid;grid-template-columns:repeat(3,1fr);gap:1.2vh}
 #menu li{
-  color:#cfc7de;font-size:1.7vh;padding:1.2vh 1.8vh;border:1px solid rgba(255,255,255,.12);
-  border-radius:1vh;cursor:pointer;
+  font-family:'Geist Mono',monospace;color:#cfc7de;font-size:1.5vh;padding:1.2vh 1.8vh;
+  border:1px solid rgba(255,255,255,.12);border-radius:.8vh;cursor:pointer;letter-spacing:.06em;
 }
 #menu li:hover{background:rgba(111,73,178,.35);color:#fff}
-#menu li span{color:#7d7590;margin-right:1.2vh;font-variant-numeric:tabular-nums}
+#menu li span{color:#7d7590;margin-right:1.2vh}
 
 @media print{
   body{display:block;background:#fff}
-  #deck{width:100%;height:auto;box-shadow:none}
+  #deck{width:100%;height:auto;box-shadow:none;container-type:normal}
   .slide{position:relative;display:block;page-break-after:always;height:100vh}
   #chrome,#notes,#menu,#progress{display:none!important}
 }
@@ -624,8 +790,21 @@ ${slides}
     startX = null;
   });
 
-  var hash = parseInt((location.hash || '').replace('#',''), 10);
-  go(isNaN(hash) ? 0 : hash - 1);
+  function fromHash(){
+    var h = parseInt((location.hash || '').replace('#',''), 10);
+    return isNaN(h) ? 0 : h - 1;
+  }
+
+  // The URL carries the slide number so a link can point at one slide. Without
+  // this listener that only worked on a cold load: editing the hash, or opening
+  // a /d/slug#7 link while the deck was already open, changed the address bar
+  // and nothing else.
+  window.addEventListener('hashchange', function(){
+    var target = fromHash();
+    if (target !== i) go(target);
+  });
+
+  go(fromHash());
 })();
 </script>
 </body>
