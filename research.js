@@ -206,6 +206,11 @@ RULES FOR THIS JOB:
   what we see happening in their buyers' world, without explaining signals yet.
   Do not describe the mechanism. That reveal comes later in the deck.
 - Deck copy, not prose. Slide lines are short. No paragraph runs on a slide.
+- The deck no longer shows their ICP, their TAM size, or a market segmentation.
+  You still get icp and tam in the brief and should use them to reason, but do
+  NOT write copy that points at them as if the prospect has seen them. No "your
+  three segments", no "the 11,400 companies we mapped". Nothing on a slide may
+  assume the prospect has been shown a breakdown of their own market.
 - Never invent a fact that is not in the brief. If the brief says unknown, write
   around it rather than filling it in.
 - The signals array is the heart of the deck. Give a mix of loud signals

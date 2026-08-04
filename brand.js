@@ -85,7 +85,10 @@ CEO and Founder.
 export const NARRATIVE = `
 THE DECK NARRATIVE (this is the fixed spine, every deck follows it):
 
-1. Top of funnel: the job is to generate awareness and educate.
+1. Top of funnel: the job is to generate awareness, and the goal of that
+   awareness is a booked meeting. The funnel runs awareness, then education,
+   then selection. We work the top band only. Do NOT write copy that puts
+   educating the market in Charm's job description.
 2. How do you do that? Channels.
 3. Charm focuses on outbound channels: email, LinkedIn, phone.
 4. Today we are talking about driving AWARENESS using email and LinkedIn.

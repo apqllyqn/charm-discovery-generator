@@ -32,12 +32,10 @@ const nl2br = (v) => esc(v).replace(/\n/g, '<br>');
 const NOTES = {
   cover: 'Hold here while they settle. Say their company name out loud. Nothing else on this slide on purpose.',
   proof: 'Ten seconds, not sixty. They came from a cold email and do not know us yet. Read one number, not four, then move. "That is the last time I talk about us."',
-  tof: 'Ask it as a real question. "What are we actually doing at the top of the funnel?" Wait. Then answer: generate awareness, educate.',
+  tof: 'Ask it as a real question. "What are we actually doing at the top of the funnel?" Wait. Then answer: generate awareness, and the goal of that awareness is a booked meeting. Education and selection are the bands underneath, they are not what we are here for.',
   how: 'One word answer. Channels. Let it land before you list them.',
   channels: 'Three channels, one team. Point at the convergence. This is where you say we are operators, not a tool.',
   turn: 'The narrowing. Phone is real but it is not today. Today is awareness through email and LinkedIn.',
-  world: 'Read their world back to them. If you got something wrong here, that is a gift. Let them correct you.',
-  segments: 'Ask which segment they would start with. Their answer tells you where the real pipeline pressure is.',
   things: 'Count them on your fingers. Three. When you hit the signals line under the words, do NOT explain it. Say "more on that in a minute" and keep moving. The curiosity is the point.',
   sequence: 'The key word is intertwined. Not three vendors, not three campaigns. One system per prospect, all running at once.',
   cool: 'Slow down. This is the turn of the whole deck. "But this is where it gets cool."',
@@ -74,18 +72,6 @@ export function renderDeck({ slug, domain, data, dateLabel }) {
       </div>`
     )
     .join('');
-
-  const segments = (d.tam?.segments || [])
-    .map(
-      (s) => `<div class="seg">
-        <div class="seg-name">${esc(s.name)}</div>
-        <div class="seg-size">${esc(s.size_note)}</div>
-        <p>${esc(s.why)}</p>
-      </div>`
-    )
-    .join('');
-
-  const titles = (d.icp?.buyer_titles || []).map((x) => `<li>${esc(x)}</li>`).join('');
 
   const touches = (d.sequence?.touches || [])
     .map(
@@ -148,8 +134,8 @@ export function renderDeck({ slug, domain, data, dateLabel }) {
       `<div class="pad grain split">
         <div class="split-l">
           <p class="ask mono">What are we doing at the top of the funnel?</p>
-          <h2 class="statement-h serif">Generate awareness.<br>Educate.</h2>
-          <p class="lead">Everything below this band is a different job for a different day.</p>
+          <h2 class="statement-h serif">Generate awareness.</h2>
+          <p class="lead">The goal is a booked meeting. The bands below it are a different job for a different day.</p>
         </div>
         <div class="split-r">${funnel()}</div>
       </div>`
@@ -196,39 +182,12 @@ export function renderDeck({ slug, domain, data, dateLabel }) {
       'ink'
     ),
 
-    slide(
-      'world',
-      NOTES.world,
-      `<div class="pad grain">
-        ${kicker('Your world, as we read it')}
-        <h2 class="h-slide serif">${esc(company)}</h2>
-        <p class="lead">${esc(d.company?.one_liner)}</p>
-        <div class="two-col">
-          <div class="card">
-            <h4 class="mono">Who you sell to</h4>
-            <p>${esc(d.icp?.who_they_sell_to)}</p>
-            <ul class="titles mono">${titles}</ul>
-            <p class="small">${esc(d.icp?.deal_shape)}</p>
-          </div>
-          <div class="card card-tint">
-            <h4 class="mono">Your TAM</h4>
-            <p class="tam-head serif">${esc(d.tam?.headline)}</p>
-            <p class="small">${esc(d.tam?.reasoning)}</p>
-          </div>
-        </div>
-      </div>`
-    ),
-
-    slide(
-      'segments',
-      NOTES.segments,
-      `<div class="pad grain">
-        ${kicker('Where the TAM splits')}
-        <h2 class="h-slide serif">Three doors into the same market.</h2>
-        <div class="seg-grid">${segments}</div>
-      </div>`
-    ),
-
+    // "Your world, as we read it" and "Three doors into the same market" used to
+    // sit here. Both were removed: they told a cold prospect what their own ICP
+    // and market segmentation are, off a research pass that is inferring, and
+    // being confidently wrong about someone's own business early in a first call
+    // costs more than the slides were worth. The turn now leads straight into
+    // what we actually do.
     slide(
       'things',
       NOTES.things,
@@ -545,23 +504,8 @@ em{font-style:italic;color:var(--accent)}
 .two-col{display:grid;grid-template-columns:1fr 1fr;gap:2.6cqh;flex:1;min-height:0;
   grid-auto-rows:min-content;align-content:start}
 .card{border:1px solid var(--line);border-radius:1.2cqh;padding:3cqh;overflow:hidden;background:rgba(255,255,255,.5)}
-.card-tint{background:var(--accent-soft);border-color:var(--accent-mid)}
 .card h4{font-size:1.3cqh;letter-spacing:.14em;text-transform:uppercase;color:var(--accent);margin-bottom:1.6cqh;font-weight:500}
 .card p{font-size:1.8cqh;line-height:1.5;color:var(--text-dim);margin-bottom:1.2cqh}
-.titles{list-style:none;display:flex;flex-wrap:wrap;gap:.7cqh;margin:1.4cqh 0}
-.titles li{
-  font-size:1.25cqh;padding:.5cqh 1.1cqh;border:1px solid var(--line);
-  border-radius:99px;color:var(--text-dim);background:var(--paper);
-}
-.tam-head{font-size:4.4cqh!important;color:var(--text)!important;margin-bottom:1.4cqh!important}
-
-/* ---------------------------------------------------------------- segments */
-.seg-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:2.6cqh;flex:1;min-height:0;
-  grid-auto-rows:min-content;align-content:start}
-.seg{border-top:2px solid var(--accent);padding-top:2.2cqh}
-.seg-name{font-size:2.5cqh;font-weight:600;margin-bottom:.5cqh}
-.seg-size{font-family:'Geist Mono',monospace;font-size:1.35cqh;letter-spacing:.08em;color:var(--accent);margin-bottom:1.4cqh}
-.seg p{font-size:1.65cqh;line-height:1.55;color:var(--text-dim)}
 
 /* ---------------------------------------------------------------- three things */
 .things{list-style:none;display:flex;flex-direction:column;gap:1.2cqh;flex:1;justify-content:center}

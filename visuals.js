@@ -37,9 +37,9 @@ export function funnel() {
   <path d="M8 14 H452 L372 104 H88 Z" fill="url(#fn-lit)"/>
   <text x="230" y="66" class="fn-label fn-label-lit">AWARENESS</text>
 
-  <!-- consideration -->
+  <!-- education -->
   <path d="M92 118 H368 L322 200 H138 Z" fill="none" stroke="var(--line-strong)" stroke-width="1.5"/>
-  <text x="230" y="164" class="fn-label">CONSIDERATION</text>
+  <text x="230" y="164" class="fn-label">EDUCATION</text>
 
   <!-- decision -->
   <path d="M142 214 H318 L286 288 H174 Z" fill="none" stroke="var(--line)" stroke-width="1.5"/>

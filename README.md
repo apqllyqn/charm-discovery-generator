@@ -12,22 +12,34 @@ from and can send afterwards.
 
 The deck spine is fixed. Only the copy inside it is personalized.
 
-1. Cover
-2. What are we doing at top of funnel? Generate awareness. Educate.
-3. How do we do that? Channels.
-4. Charm runs outbound: email, LinkedIn, phone.
-5. The turn: we are here to talk about driving awareness using email and LinkedIn.
-6. Your world: who you are, who you sell to, your TAM.
-7. Where the TAM splits.
-8. What we do for you: 1) get the leads, 2) write the words, 3) **read the
+1. Cover: their mark beside ours.
+2. Proof: who they are talking to. Traffic here is cold, so this buys
+   permission for the next twelve slides. Numbers only.
+3. What are we doing at top of funnel? Generate awareness, to book a meeting.
+   The funnel runs awareness, then education, then decision. We work the top
+   band only.
+4. How do we do that? Channels.
+5. Charm runs outbound: email, LinkedIn, phone. Three channels, one team.
+6. The turn: we are here to talk about driving awareness using email and
+   LinkedIn. Phone is struck out, not today.
+7. What we do for you: 1) get the leads, 2) write the words, 3) **read the
    signals** (teased), 4) manage the infrastructure.
-9. All at once: intertwined multi-touch sequences for every prospect in your TAM.
-10. "But this is where it gets cool."
-11. Pain is not always stated. The scream versus the wince.
-12. Signals we would watch for this prospect.
-13. The signal fires, the words change: real sample email and LinkedIn touches.
-14. The read: what we noticed, the gap, the question.
-15. Two calls. The read, then the remedy.
+8. All at once: intertwined multi-touch sequences for every prospect in your TAM.
+9. "But this is where it gets cool."
+10. Pain is not always stated. The scream versus the wince, drawn as waveforms
+    against the line where every other agency starts selling.
+11. Signals we would watch for this prospect.
+12. The signal fires, the words change: real sample email and LinkedIn touches.
+13. The read: what we noticed, the gap, the question.
+14. Two calls. The read, then the remedy. Booking link on the slide.
+
+There used to be a "your world" slide (their ICP and TAM) and a "where the TAM
+splits" slide, between the turn and what we do. Both were cut. They told a cold
+prospect what their own market looks like off a research pass that is inferring,
+and being confidently wrong about someone's own business in the first five
+minutes costs more than the slides were worth. `icp` and `tam` are still
+generated, because the writer reasons better with them, and still readable in
+the brief. They are simply not shown.
 
 Presenter notes live on every slide. Press **N**.
 

@@ -59,8 +59,8 @@ const FIXTURE = {
     phone: 'Real in this market, but not the channel we are talking about today.',
   },
   three_things: {
-    leads: 'Every mid-market shipper in your three segments, mapped by load volume and by whether a TMS is already named in their stack.',
-    words: 'Copy written per segment, because a spoilage number does not move a building products buyer.',
+    leads: 'Every mid-market shipper moving 200 loads a month or more, mapped by volume and by whether a TMS is already named in their stack.',
+    words: 'Copy written for each kind of buyer, because a spoilage number does not move a building products operator.',
     signals_teaser: 'And the words change based on what we see happening in their world that week.',
     infrastructure: 'Domains, warmup, inboxes, deliverability. Our team runs it, you never see it.',
   },
@@ -126,7 +126,7 @@ const FIXTURE = {
       'Founders post on LinkedIn but nobody is working the audience it builds.',
       'Case studies are all food and beverage, but the site sells to everyone.',
     ],
-    gap: 'You have a market that can be listed and a story that only lands in one segment, and nothing systematically carrying that story to the other two.',
+    gap: 'You have a market that can be listed and a story that only lands with one kind of buyer, and nothing systematically carrying that story to the rest.',
     question: 'If we could name every shipper in building products who just lost their logistics lead, what would you want them to hear first?',
   },
   sources: [
